@@ -1,0 +1,28 @@
+﻿<ui:FluentWindow x:Class="WpfApp.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:WpfApp"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        mc:Ignorable="d"
+        Background="#202020"
+        Title="VkNet.Extensions.Auth - Example" Height="650" Width="800">
+        <Grid>
+                <ui:NavigationView IsPaneToggleVisible="False"
+                                   OpenPaneLength="32"
+                                   TitleBar="{Binding ElementName=TitleBar, Mode=OneWay}"
+                                   x:Name="NavigationView"
+                                   x:FieldModifier="public">
+                    <ui:NavigationView.ContentOverlay>
+                        <Grid>
+                            <ui:SnackbarPresenter x:Name="SnackbarPresenter" />
+                        </Grid>
+                    </ui:NavigationView.ContentOverlay>
+                </ui:NavigationView>
+
+            <ContentPresenter x:Name="RootContentDialog" />
+                
+                <ui:TitleBar x:Name="TitleBar" />
+        </Grid>
+</ui:FluentWindow>

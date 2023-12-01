@@ -1,0 +1,53 @@
+﻿<Page x:Class="WpfApp.Views.UserInfoPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:local="clr-namespace:WpfApp.Views"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      mc:Ignorable="d"
+      ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
+      ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+      Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+      d:DataContext="{d:DesignInstance local:UserInfoPage,
+                                     IsDesignTimeCreatable=False}"
+      Title="User Info" Height="450" Width="800">
+    <Page.Style>
+        <Style TargetType="Page" BasedOn="{StaticResource {x:Type Page}}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate>
+                        <ui:CardAction Margin="15" VerticalAlignment="Center" HorizontalAlignment="Center" IsChevronVisible="False">
+                            <ui:CardAction.Icon>
+                                <ui:ImageIcon Source="{Binding ViewModel.CurrentUser.Photo200, FallbackValue=https://vk.com/images/camera_200.png}" Width="96" Height="96">
+                                    <ui:ImageIcon.Clip>
+                                        <EllipseGeometry RadiusX="48" RadiusY="48" Center="48,48" />
+                                    </ui:ImageIcon.Clip>
+                                </ui:ImageIcon>
+                            </ui:CardAction.Icon>
+                            
+                            <ui:TextBlock FontTypography="Title">
+                                <Run>Привет,</Run>
+                                <Run Text="{Binding ViewModel.CurrentUser.FirstName, FallbackValue=Павел}" />
+                                <Run Text="{Binding ViewModel.CurrentUser.LastName, FallbackValue=Дуров}" />
+                            </ui:TextBlock>
+                        </ui:CardAction>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding ViewModel.CurrentUser}" Value="{x:Null}">
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate>
+                                <ui:Card HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <ui:ProgressRing HorizontalAlignment="Center" VerticalAlignment="Center" IsIndeterminate="True" />
+                                </ui:Card>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </Page.Style>
+</Page>

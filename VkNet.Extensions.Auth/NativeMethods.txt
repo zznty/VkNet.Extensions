@@ -1,0 +1,8 @@
+﻿DwmSetWindowAttribute
+WebAuthNIsUserVerifyingPlatformAuthenticatorAvailable
+WebAuthNAuthenticatorGetAssertion
+WebAuthNFreeAssertion
+WebAuthNCancelCurrentOperation
+WebAuthNGetCancellationId
+WebAuthNGetApiVersionNumber
+WebAuthNGetErrorName

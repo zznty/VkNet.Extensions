@@ -1,0 +1,33 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VkNet.Extensions.Auth", "VkNet.Extensions.Auth\VkNet.Extensions.Auth.csproj", "{2CACBF2C-41F3-4C09-A8B6-16E6125FD6B5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VkNet.Extensions.DependencyInjection", "VkNet.Extensions.DependencyInjection\VkNet.Extensions.DependencyInjection.csproj", "{9FC4EE03-F2B9-4664-82CF-DACFD5C9D972}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "examples", "examples", "{0E90C17F-481C-4239-83B7-B45013E1103A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WpfApp", "WpfApp\WpfApp.csproj", "{39AA619C-9DA0-4D52-AD53-947DF9396D9F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2CACBF2C-41F3-4C09-A8B6-16E6125FD6B5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2CACBF2C-41F3-4C09-A8B6-16E6125FD6B5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2CACBF2C-41F3-4C09-A8B6-16E6125FD6B5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2CACBF2C-41F3-4C09-A8B6-16E6125FD6B5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9FC4EE03-F2B9-4664-82CF-DACFD5C9D972}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{9FC4EE03-F2B9-4664-82CF-DACFD5C9D972}.Debug|Any CPU.Build.0 = Debug|x64
+		{9FC4EE03-F2B9-4664-82CF-DACFD5C9D972}.Release|Any CPU.ActiveCfg = Release|x64
+		{9FC4EE03-F2B9-4664-82CF-DACFD5C9D972}.Release|Any CPU.Build.0 = Release|x64
+		{39AA619C-9DA0-4D52-AD53-947DF9396D9F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{39AA619C-9DA0-4D52-AD53-947DF9396D9F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{39AA619C-9DA0-4D52-AD53-947DF9396D9F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{39AA619C-9DA0-4D52-AD53-947DF9396D9F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{39AA619C-9DA0-4D52-AD53-947DF9396D9F} = {0E90C17F-481C-4239-83B7-B45013E1103A}
+	EndGlobalSection
+EndGlobal

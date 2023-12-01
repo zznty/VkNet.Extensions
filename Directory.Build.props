@@ -1,0 +1,9 @@
+<Project>
+    <PropertyGroup>
+        <Authors>zznty</Authors>
+        <RepositoryType>GIT</RepositoryType>
+        <RepositoryUrl>https://github.com/zznty/VkNet.Extensions.git</RepositoryUrl>
+        <PackageTags>vknet;vk;api</PackageTags>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    </PropertyGroup>
+</Project>
