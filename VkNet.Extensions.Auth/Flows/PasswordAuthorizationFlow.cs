@@ -1,9 +1,7 @@
 ﻿using VkNet.Abstractions.Core;
-using VkNet.Abstractions.Utils;
 using VkNet.Extensions.Auth.Abstractions;
 using VkNet.Extensions.Auth.Models.Auth;
 using VkNet.Extensions.Auth.Utils;
-using VkNet.Extensions.DependencyInjection;
 using VkNet.Extensions.DependencyInjection.Abstractions;
 using VkNet.Model;
 using VkNet.Utils;
@@ -17,18 +15,18 @@ internal class PasswordAuthorizationFlow(
     IVkApiVersionManager versionManager,
     ILanguageService languageService,
     IAsyncRateLimiter rateLimiter,
-    IRestClient restClient,
+    HttpClient client,
     ICaptchaHandler captchaHandler,
     LibVerifyClient libVerifyClient)
     : AuthorizationFlowBase(tokenStore, safetyNetClient, deviceIdStore,
-        versionManager, languageService, rateLimiter, restClient, captchaHandler, libVerifyClient)
+        versionManager, languageService, rateLimiter, client, captchaHandler, libVerifyClient)
 {
-    protected override Task<AuthorizationResult> AuthorizeAsync(AndroidApiAuthParams authParams)
+    protected override Task<AuthorizationResult> AuthorizeAsync(AndroidApiAuthParams authParams, CancellationToken token = default)
     {
         if (string.IsNullOrEmpty(authParams.Password) && !authParams.IsAnonymous)
             throw new ArgumentException("Password is required for this flow type", nameof(authParams));
         
-        return AuthAsync(authParams);
+        return AuthAsync(authParams, token);
     }
 
     protected override async ValueTask<VkParameters> BuildParameters(AndroidApiAuthParams authParams)

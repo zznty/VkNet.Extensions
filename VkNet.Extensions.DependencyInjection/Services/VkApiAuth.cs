@@ -28,13 +28,18 @@ public class VkApiAuth(
         RefreshTokenAsync(code).GetAwaiter().GetResult();
     }
 
+    public void RefreshToken(Task<string>? code = null)
+    {
+        RefreshTokenAsync(code).GetAwaiter().GetResult();
+    }
+
     public void LogOut()
     {
         LogOutAsync().GetAwaiter().GetResult();
     }
 
     public bool IsAuthorized { get; private set;}
-    public async Task AuthorizeAsync(IApiAuthParams @params)
+    public async Task AuthorizeAsync(IApiAuthParams @params, CancellationToken token = default)
     {
         if (!string.IsNullOrEmpty(@params.AccessToken))
         {
@@ -44,7 +49,7 @@ public class VkApiAuth(
         
         authorizationFlow.SetAuthorizationParams(@params);
 
-        var result = await authorizationFlow.AuthorizeAsync();
+        var result = await authorizationFlow.AuthorizeAsync(token);
         
         await tokenStore.SetAsync(result.AccessToken,
                                    result.ExpiresIn > 0
@@ -54,7 +59,7 @@ public class VkApiAuth(
         _lastAuthParams = @params;
     }
 
-    public Task RefreshTokenAsync(Func<string>? code = null)
+    public Task RefreshTokenAsync(Func<string>? code = null, CancellationToken token = default)
     {
         if (_lastAuthParams is null || !_lastAuthParams.IsValid)
         {
@@ -64,10 +69,23 @@ public class VkApiAuth(
         if (code is not null)
             _lastAuthParams.TwoFactorAuthorization = code;
 
-        return tokenRefreshHandler?.RefreshTokenAsync(tokenStore.Token) ?? AuthorizeAsync(_lastAuthParams);
+        return tokenRefreshHandler?.RefreshTokenAsync(tokenStore.Token) ?? AuthorizeAsync(_lastAuthParams, token);
     }
 
-    public Task LogOutAsync()
+    public Task RefreshTokenAsync(Task<string>? code = null, CancellationToken token = default)
+    {
+        if (_lastAuthParams is null || !_lastAuthParams.IsValid)
+        {
+            throw new InvalidOperationException();
+        }
+
+        if (code is not null)
+            _lastAuthParams.TwoFactorAuthorizationAsync = code;
+        
+        return tokenRefreshHandler?.RefreshTokenAsync(tokenStore.Token) ?? AuthorizeAsync(_lastAuthParams, token);
+    }
+
+    public Task LogOutAsync(CancellationToken token = default)
     {
         IsAuthorized = false;
         return tokenStore.SetAsync(null);

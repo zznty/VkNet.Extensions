@@ -5,9 +5,9 @@ namespace VkNet.Extensions.Auth.Abstractions.Categories;
 
 public interface IEcosystemCategory
 {
-    Task<EcosystemSendOtpResponse> SendOtpSmsAsync(string sid);
-    Task<EcosystemSendOtpResponse> SendOtpPushAsync(string sid);
-    Task<EcosystemSendOtpResponse> SendOtpCallResetAsync(string sid);
-    Task<EcosystemCheckOtpResponse> CheckOtpAsync(string sid, LoginWay verificationMethod, string code);
-    Task<EcosystemGetVerificationMethodsResponse> GetVerificationMethodsAsync(string sid);
+    Task<EcosystemSendOtpResponse> SendOtpSmsAsync(string sid, CancellationToken token = default);
+    Task<EcosystemSendOtpResponse> SendOtpPushAsync(string sid, CancellationToken token = default);
+    Task<EcosystemSendOtpResponse> SendOtpCallResetAsync(string sid, CancellationToken token = default);
+    Task<EcosystemCheckOtpResponse> CheckOtpAsync(string sid, LoginWay verificationMethod, string code, CancellationToken token = default);
+    Task<EcosystemGetVerificationMethodsResponse> GetVerificationMethodsAsync(string sid, CancellationToken token = default);
 }

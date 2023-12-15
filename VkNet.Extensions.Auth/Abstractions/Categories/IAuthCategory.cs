@@ -5,16 +5,16 @@ namespace VkNet.Extensions.Auth.Abstractions.Categories;
 
 public interface IAuthCategory
 {
-    Task<AuthValidateAccountResponse> ValidateAccountAsync(string login, bool forcePassword = false, bool passkeySupported = false, IEnumerable<LoginWay>? loginWays = null);
-    Task<AuthValidatePhoneResponse> ValidatePhoneAsync(string phone, string sid, bool allowCallReset = true, IEnumerable<LoginWay>? loginWays = null);
+    Task<AuthValidateAccountResponse> ValidateAccountAsync(string login, bool forcePassword = false, bool passkeySupported = false, IEnumerable<LoginWay>? loginWays = null, CancellationToken token = default);
+    Task<AuthValidatePhoneResponse> ValidatePhoneAsync(string phone, string sid, bool allowCallReset = true, IEnumerable<LoginWay>? loginWays = null, CancellationToken token = default);
 
-    Task<AuthCodeResponse> GetAuthCodeAsync(string deviceName, bool forceRegenerate = true);
+    Task<AuthCodeResponse> GetAuthCodeAsync(string deviceName, bool forceRegenerate = true, CancellationToken token = default);
     
-    Task<AuthCheckResponse> CheckAuthCodeAsync(string authHash);
+    Task<AuthCheckResponse> CheckAuthCodeAsync(string authHash, CancellationToken token = default);
     
-    Task<TokenInfo?> RefreshTokensAsync(string oldToken, string exchangeToken);
+    Task<TokenInfo?> RefreshTokensAsync(string oldToken, string exchangeToken, CancellationToken token = default);
 
-    Task<ExchangeTokenResponse> GetExchangeToken(UsersFields? fields = null);
+    Task<ExchangeTokenResponse> GetExchangeToken(UsersFields? fields = null, CancellationToken token = default);
     
-    Task<PasskeyBeginResponse> BeginPasskeyAsync(string sid);
+    Task<PasskeyBeginResponse> BeginPasskeyAsync(string sid, CancellationToken token = default);
 }

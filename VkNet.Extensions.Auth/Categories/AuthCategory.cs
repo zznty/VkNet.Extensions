@@ -1,13 +1,10 @@
-﻿using System.Collections.Immutable;
-using System.Text;
+﻿using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using VkNet.Abstractions;
 using VkNet.Abstractions.Core;
-using VkNet.Abstractions.Utils;
 using VkNet.Enums.Filters;
 using VkNet.Extensions.Auth.Models.Auth;
-using VkNet.Extensions.DependencyInjection;
 using VkNet.Extensions.DependencyInjection.Abstractions;
 using VkNet.Utils;
 using Categories_IAuthCategory = VkNet.Extensions.Auth.Abstractions.Categories.IAuthCategory;
@@ -16,7 +13,7 @@ namespace VkNet.Extensions.Auth.Categories;
 
 public partial class AuthCategory(
     IVkApiInvoke apiInvoke,
-    IRestClient restClient,
+    HttpClient client,
     IVkTokenStore tokenStore,
     IVkApiVersionManager versionManager)
     : Categories_IAuthCategory
@@ -30,19 +27,19 @@ public partial class AuthCategory(
     [GeneratedRegex("""\"code_auth_verification_hash\"\:\s?\"(?<hash>[\w\.\=\-]*)\"\,?""", RegexOptions.Multiline)]
     private static partial Regex AuthVerifyHashRegex();
 
-    private async ValueTask<string> GetAnonTokenAsync()
+    private async ValueTask<string> GetAnonTokenAsync(CancellationToken token = default)
     {
         const string url =
             "https://id.vk.com/qr_auth?scheme=vkcom_dark&app_id=7913379&origin=https%3A%2F%2Fvk.com&initial_stats_info=eyJzb3VyY2UiOiJtYWluIiwic2NyZWVuIjoic3RhcnQifQ%3D%3D";
 
-        var response = await restClient.GetAsync(new(url), ImmutableDictionary<string, string>.Empty, Encoding.UTF8);
+        var response = await client.GetStringAsync(url, token);
 
-        _authVerifyHash = AuthVerifyHashRegex().Match(response.Value).Groups["hash"].Value;
+        _authVerifyHash = AuthVerifyHashRegex().Match(response).Groups["hash"].Value;
         
-        return _anonToken = AnonTokenRegex().Match(response.Value).Groups["token"].Value;
+        return _anonToken = AnonTokenRegex().Match(response).Groups["token"].Value;
     }
 
-    public Task<AuthValidateAccountResponse> ValidateAccountAsync(string login, bool forcePassword = false, bool passkeySupported = false, IEnumerable<LoginWay> loginWays = null)
+    public Task<AuthValidateAccountResponse> ValidateAccountAsync(string login, bool forcePassword = false, bool passkeySupported = false, IEnumerable<LoginWay>? loginWays = null, CancellationToken token = default)
     {
         return apiInvoke.CallAsync<AuthValidateAccountResponse>("auth.validateAccount", new()
         {
@@ -52,10 +49,11 @@ public partial class AuthCategory(
             { "flow_type", "auth_without_password" },
             { "api_id", 2274003 },
             { "passkey_supported", passkeySupported }
-        });
+        }, token: token);
     }
 
-    public Task<AuthValidatePhoneResponse> ValidatePhoneAsync(string phone, string sid, bool allowCallReset = true, IEnumerable<LoginWay> loginWays = null)
+    public Task<AuthValidatePhoneResponse> ValidatePhoneAsync(string phone, string sid, bool allowCallReset = true,
+        IEnumerable<LoginWay>? loginWays = null, CancellationToken token = default)
     {
         return apiInvoke.CallAsync<AuthValidatePhoneResponse>("auth.validatePhone", new()
         {
@@ -64,10 +62,11 @@ public partial class AuthCategory(
             { "supported_ways", loginWays },
             { "flow_type", "tg_flow" },
             { "allow_callreset", allowCallReset }
-        });
+        }, token: token);
     }
 
-    public async Task<AuthCodeResponse> GetAuthCodeAsync(string deviceName, bool forceRegenerate = true)
+    public async Task<AuthCodeResponse> GetAuthCodeAsync(string deviceName, bool forceRegenerate = true,
+        CancellationToken token = default)
     {
         return await apiInvoke.CallAsync<AuthCodeResponse>("auth.getAuthCode", new()
         {
@@ -75,22 +74,22 @@ public partial class AuthCategory(
             { "force_regenerate", forceRegenerate },
             { "auth_code_flow", false },
             { "client_id", 7913379 },
-            { "anonymous_token", _anonToken ?? await GetAnonTokenAsync() },
+            { "anonymous_token", _anonToken ?? await GetAnonTokenAsync(token) },
             { "verification_hash", _authVerifyHash }
-        }, true);
+        }, true, token);
     }
 
-    public async Task<AuthCheckResponse> CheckAuthCodeAsync(string authHash)
+    public async Task<AuthCheckResponse> CheckAuthCodeAsync(string authHash, CancellationToken token = default)
     {
         return await apiInvoke.CallAsync<AuthCheckResponse>("auth.checkAuthCode", new()
         {
             { "auth_hash", authHash },
             { "client_id", 7913379 },
-            { "anonymous_token", _anonToken ?? await GetAnonTokenAsync() }
-        }, true);
+            { "anonymous_token", _anonToken ?? await GetAnonTokenAsync(token) }
+        }, true, token);
     }
 
-    public async Task<TokenInfo> RefreshTokensAsync(string oldToken, string exchangeToken)
+    public async Task<TokenInfo?> RefreshTokensAsync(string oldToken, string exchangeToken, CancellationToken token = default)
     {
         var response = await apiInvoke.CallAsync<AuthRefreshTokensResponse>("auth.refreshTokens", new()
         {
@@ -101,12 +100,12 @@ public partial class AuthCategory(
             { "api_id", 2274003 },
             { "client_id", 2274003 },
             { "client_secret", "hHbZxrka2uZ6jB1inYsH" },
-        }, true);
+        }, true, token);
         
         return response.Success.Count > 0 ? response.Success[0].AccessToken : null;
     }
 
-    public Task<ExchangeTokenResponse> GetExchangeToken(UsersFields fields = null)
+    public Task<ExchangeTokenResponse> GetExchangeToken(UsersFields? fields = null, CancellationToken token = default)
     {
         return apiInvoke.CallAsync<ExchangeTokenResponse>("execute.getUserInfo", new()
         {
@@ -116,24 +115,24 @@ public partial class AuthCategory(
             { "androidModel", "MusicX" },
             { "needExchangeToken", true },
             { "fields", fields }
-        });
+        }, token: token);
     }
 
-    public async Task<PasskeyBeginResponse> BeginPasskeyAsync(string sid)
+    public async Task<PasskeyBeginResponse> BeginPasskeyAsync(string sid, CancellationToken token = default)
     {
-        var response = await restClient.PostAsync(new("https://api.vk.com/oauth/passkey_begin"), new VkParameters
+        using var response = await client.PostAsync("https://api.vk.com/oauth/passkey_begin", new FormUrlEncodedContent(new VkParameters
         {
             { "sid", sid },
             { "anonymous_token", tokenStore.Token },
             { "v", versionManager.Version },
             { "https", true }
-        }, Encoding.UTF8);
+        }), token);
 
         var options = new JsonSerializerOptions(JsonSerializerDefaults.Web)
         {
             PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
         };
         
-        return JsonSerializer.Deserialize<PasskeyBeginResponse>(response.Value, options);
+        return (await response.Content.ReadFromJsonAsync<PasskeyBeginResponse>(options, cancellationToken: token))!;
     }
 }

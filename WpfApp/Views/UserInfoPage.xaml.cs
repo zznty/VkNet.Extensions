@@ -1,5 +1,4 @@
-﻿using System.Windows.Controls;
-using Wpf.Ui.Controls;
+﻿using Wpf.Ui.Controls;
 using WpfApp.ViewModels;
 
 namespace WpfApp.Views;

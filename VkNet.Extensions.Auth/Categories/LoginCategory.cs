@@ -1,19 +1,17 @@
-﻿using System.Security.Authentication;
-using System.Text;
+﻿using System.Net.Http.Json;
+using System.Security.Authentication;
 using System.Text.Json;
-using VkNet.Abstractions.Utils;
 using VkNet.Extensions.Auth.Abstractions.Categories;
-using VkNet.Extensions.DependencyInjection;
 using VkNet.Extensions.DependencyInjection.Abstractions;
 using VkNet.Utils;
 
 namespace VkNet.Extensions.Auth.Categories;
 
-public class LoginCategory(IVkTokenStore tokenStore, IRestClient restClient) : ILoginCategory
+public class LoginCategory(IVkTokenStore tokenStore, HttpClient client) : ILoginCategory
 {
     private readonly JsonSerializerOptions _jsonSerializerOptions = new(JsonSerializerDefaults.Web);
 
-    public async Task ConnectAsync(string uuid)
+    public async Task ConnectAsync(string uuid, CancellationToken token = default)
     {
         var parameters = new VkParameters
         {
@@ -22,18 +20,15 @@ public class LoginCategory(IVkTokenStore tokenStore, IRestClient restClient) : I
             { "app_id", 7913379 }
         };
         
-        var response = await restClient.PostAsync(new("https://login.vk.com/?act=connect_internal"), parameters, Encoding.UTF8);
+        using var response = await client.PostAsync("https://login.vk.com/?act=connect_internal", new FormUrlEncodedContent(parameters), token);
 
-        if (!response.IsSuccess)
-            throw new HttpRequestException("Error connecting as desktop", null, response.StatusCode);
+        var loginResponse = await response.Content.ReadFromJsonAsync<LoginResponse>(_jsonSerializerOptions, cancellationToken: token);
 
-        var loginResponse = JsonSerializer.Deserialize<LoginResponse>(response.Value, _jsonSerializerOptions);
-
-        if (loginResponse.Type != "okay")
+        if (loginResponse?.Type != "okay")
             throw new AuthenticationException();
     }
 
-    public async Task ConnectAuthCodeAsync(string token, string uuid)
+    public async Task ConnectAuthCodeAsync(string token, string uuid, CancellationToken cancellationToken = default)
     {
         var parameters = new VkParameters
         {
@@ -43,12 +38,9 @@ public class LoginCategory(IVkTokenStore tokenStore, IRestClient restClient) : I
             { "token", token }
         };
         
-        var response = await restClient.PostAsync(new("https://login.vk.com/?act=connect_code_auth"), parameters, Encoding.UTF8);
+        var response = await client.PostAsync("https://login.vk.com/?act=connect_code_auth", new FormUrlEncodedContent(parameters), cancellationToken);
 
-        if (!response.IsSuccess)
-            throw new HttpRequestException("Error connecting auth code", null, response.StatusCode);
-
-        var (type, loginResponse) = JsonSerializer.Deserialize<LoginResponse<LoginResponseAccessToken>>(response.Value, _jsonSerializerOptions);
+        var (type, loginResponse) = (await response.Content.ReadFromJsonAsync<LoginResponse<LoginResponseAccessToken>>(_jsonSerializerOptions, cancellationToken: cancellationToken))!;
 
         if (type != "okay" || loginResponse.ResponseType != "auth_token")
             throw new AuthenticationException();

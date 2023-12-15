@@ -1,5 +1,4 @@
 using System.Security.Cryptography;
-using System.Text;
 
 namespace VkNet.Extensions.Auth.Utils;
 

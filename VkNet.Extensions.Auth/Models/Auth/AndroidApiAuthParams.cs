@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using VkNet.Enums.Filters;
 using VkNet.Enums.SafetyEnums;
+using VkNet.Enums.StringEnums;
 using VkNet.Extensions.Auth.Models.Ecosystem;
 using VkNet.Model;
 using VkNet.Utils.JsonConverter;
@@ -33,6 +34,9 @@ public record AndroidApiAuthParams(string? Login, string? Sid, CodeRequestedDele
 
     [Obsolete($"Set {nameof(CodeRequestedAsync)} event", true)]
     public Func<string>? TwoFactorAuthorization { get; set; }
+    
+    [Obsolete($"Set {nameof(CodeRequestedAsync)} event", true)]
+    public Task<string>? TwoFactorAuthorizationAsync { get; set; }
 
     /// <inheritdoc />
     public string? AccessToken { get; set; }
@@ -73,7 +77,7 @@ public record AndroidApiAuthParams(string? Login, string? Sid, CodeRequestedDele
     public GrantType? GrantType { get; set; }
 
     [Obsolete("Not implemented", true)]
-    public ResponseType ResponseType { get; set; } = ResponseType.Token;
+    public ResponseType? ResponseType { get; set; }
     [Obsolete("Not implemented", true)]
     public bool? Revoke { get; set; }
     [Obsolete("Not implemented", true)]

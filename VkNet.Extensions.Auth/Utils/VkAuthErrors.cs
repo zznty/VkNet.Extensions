@@ -51,7 +51,7 @@ public static class VkAuthErrors
 	/// <exception cref="VkApiException">
 	/// Неправильные данные JSON.
 	/// </exception>
-	public static void IfErrorThrowException(JObject json)
+	public static void IfErrorThrowException(JToken json)
 	{
 		var error = json["error"];
 

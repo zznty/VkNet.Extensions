@@ -41,7 +41,9 @@ public class VkApiCategories(
     IPodcastsCategory podcasts,
     IDonutCategory donut,
     IDownloadedGamesCategory downloadedGames,
-    IServiceProvider provider)
+    IServiceProvider provider,
+    IAsrCategory asr,
+    IShortVideoCategory shortVideo)
     : IVkApiCategories
 {
     public IUsersCategory Users { get; } = users;
@@ -87,4 +89,6 @@ public class VkApiCategories(
     public IPodcastsCategory Podcasts { get; set; } = podcasts;
     public IDonutCategory Donut { get; } = donut;
     public IDownloadedGamesCategory DownloadedGames { get; } = downloadedGames;
+    public IAsrCategory Asr { get; } = asr;
+    public IShortVideoCategory ShortVideo { get; } = shortVideo;
 }

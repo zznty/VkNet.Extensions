@@ -2,7 +2,6 @@
 using VkNet.Abstractions;
 using VkNet.Extensions.Auth.Abstractions;
 using VkNet.Extensions.Auth.Models.Auth;
-using VkNet.Extensions.DependencyInjection;
 using VkNet.Extensions.DependencyInjection.Abstractions;
 using IAuthCategory = VkNet.Extensions.Auth.Abstractions.Categories.IAuthCategory;
 

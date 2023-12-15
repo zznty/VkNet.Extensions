@@ -4,7 +4,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using VkNet.Extensions.Auth.Abstractions;
 using VkNet.Extensions.Auth.Extensions;
-using VkNet.Extensions.DependencyInjection;
 using VkNet.Extensions.DependencyInjection.Abstractions;
 using Wpf.Ui;
 using WpfApp.Abstractions;
@@ -25,8 +24,7 @@ public partial class App
         .ConfigureServices(services =>
         {
             // Vk Net services
-            services.AddVkNetAuth();
-            services.AddVkNet();
+            services.AddVkNetWithAuth();
             
             // Vk Net implementations
             services.AddSingleton<IVkTokenStore, RegistryTokenStore>();

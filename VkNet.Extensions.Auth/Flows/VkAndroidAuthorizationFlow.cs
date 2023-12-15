@@ -19,7 +19,7 @@ public class VkAndroidAuthorizationFlow(
 {
     private AndroidApiAuthParams? _apiAuthParams;
 
-    public async Task<AuthorizationResult> AuthorizeAsync()
+    public async Task<AuthorizationResult> AuthorizeAsync(CancellationToken token = default)
     {
         if (_apiAuthParams is null)
             throw new InvalidOperationException($"Authorization parameters are not set. Call {nameof(SetAuthorizationParams)} first.");
@@ -30,7 +30,7 @@ public class VkAndroidAuthorizationFlow(
             
             defaultFlow.SetAuthorizationParams(_apiAuthParams);
             
-            return await defaultFlow.AuthorizeAsync();
+            return await defaultFlow.AuthorizeAsync(token);
         }
         
         EnsureAnonymousToken();
@@ -42,10 +42,10 @@ public class VkAndroidAuthorizationFlow(
             await authCategory.ValidateAccountAsync(_apiAuthParams.Login, passkeySupported: true,
                 loginWays: _apiAuthParams.SupportedWays);
 
-        return await NextStepAsync(sid, nextStep?.VerificationMethod ?? LoginWay.Password);
+        return await NextStepAsync(sid, nextStep?.VerificationMethod ?? LoginWay.Password, token: token);
     }
 
-    private async Task<AuthorizationResult> NextStepAsync(string sid, LoginWay nextStep, EcosystemProfile? passwordProfile = null)
+    private async Task<AuthorizationResult> NextStepAsync(string sid, LoginWay nextStep, EcosystemProfile? passwordProfile = null, CancellationToken token = default)
     {
         while (!_apiAuthParams!.CancellationToken.IsCancellationRequested)
         {
@@ -65,7 +65,7 @@ public class VkAndroidAuthorizationFlow(
                     SupportedWays = new[] { LoginWay.Push, LoginWay.Email }
                 });
 
-                return await passwordFlow.AuthorizeAsync();
+                return await passwordFlow.AuthorizeAsync(token);
             }
 
             var codeLength = 6;
@@ -139,7 +139,7 @@ public class VkAndroidAuthorizationFlow(
                 Sid = sid, Password = null, SupportedWays = new[] { LoginWay.Push, LoginWay.Email }
             });
 
-            return await flow.AuthorizeAsync();
+            return await flow.AuthorizeAsync(token);
         }
 
         throw new(); // placeholder for compiler

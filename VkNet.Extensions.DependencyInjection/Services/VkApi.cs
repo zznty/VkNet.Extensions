@@ -12,7 +12,7 @@ using VkNet.Utils.AntiCaptcha;
 
 namespace VkNet.Extensions.DependencyInjection.Services;
 
-public class VkApi(
+public sealed class VkApi(
     IVkApiAuthAsync auth,
     IVkApiInvoke invoke,
     ILanguageService languageService,
@@ -38,17 +38,23 @@ public class VkApi(
     public void RefreshToken(Func<string>? code = null) =>
         auth.RefreshToken(code);
 
+    public void RefreshToken(Task<string>? code = null) =>
+        auth.RefreshToken(code);
+
     public void LogOut() => auth.LogOut();
 
     public bool IsAuthorized => auth.IsAuthorized;
 
-    public Task AuthorizeAsync(IApiAuthParams @params) =>
-        auth.AuthorizeAsync(@params);
+    public Task AuthorizeAsync(IApiAuthParams @params, CancellationToken token = default) =>
+        auth.AuthorizeAsync(@params, token);
 
-    public Task RefreshTokenAsync(Func<string>? code = null) =>
-        auth.RefreshTokenAsync(code);
+    public Task RefreshTokenAsync(Func<string>? code = null, CancellationToken token = default) =>
+        auth.RefreshTokenAsync(code, token);
 
-    public Task LogOutAsync() => auth.LogOutAsync();
+    public Task RefreshTokenAsync(Task<string>? code = null, CancellationToken token = default) =>
+        auth.RefreshTokenAsync(code, token);
+
+    public Task LogOutAsync(CancellationToken token = default) => auth.LogOutAsync(token);
 
     public IUsersCategory Users => categories.Users;
     public IFriendsCategory Friends => categories.Friends;
@@ -93,6 +99,8 @@ public class VkApi(
     public IPodcastsCategory Podcasts { get => categories.Podcasts; set => throw new NotSupportedException(); }
     public IDonutCategory Donut => categories.Donut;
     public IDownloadedGamesCategory DownloadedGames => categories.DownloadedGames;
+    public IAsrCategory Asr => categories.Asr;
+    public IShortVideoCategory ShortVideo => categories.ShortVideo;
     public ICaptchaSolver? CaptchaSolver { get; } = captchaSolver;
 
     public int MaxCaptchaRecognitionCount
@@ -101,35 +109,41 @@ public class VkApi(
         set => captchaHandler.MaxCaptchaRecognitionCount = value;
     }
 
-    public VkResponse Call(string methodName, VkParameters parameters, bool skipAuthorization = false) =>
-        invoke.Call(methodName, parameters, skipAuthorization);
+    public VkResponse Call(string methodName, VkParameters parameters, bool skipAuthorization = false,
+        params JsonConverter[] jsonConverters) =>
+        invoke.Call(methodName, parameters, skipAuthorization, jsonConverters);
 
     public T Call<T>(string methodName, VkParameters parameters, bool skipAuthorization = false,
                      params JsonConverter[] jsonConverters) =>
         invoke.Call<T>(methodName, parameters, skipAuthorization, jsonConverters);
 
-    public Task<VkResponse> CallAsync(string methodName, VkParameters parameters, bool skipAuthorization = false) =>
-        invoke.CallAsync(methodName, parameters, skipAuthorization);
+    public Task<VkResponse> CallAsync(string methodName, VkParameters parameters, bool skipAuthorization = false, CancellationToken token = default) =>
+        invoke.CallAsync(methodName, parameters, skipAuthorization, token);
 
-    public Task<T> CallAsync<T>(string methodName, VkParameters parameters, bool skipAuthorization = false) =>
-        invoke.CallAsync<T>(methodName, parameters, skipAuthorization);
+    public Task<T> CallAsync<T>(string methodName, VkParameters parameters, bool skipAuthorization = false, CancellationToken token = default) =>
+        invoke.CallAsync<T>(methodName, parameters, skipAuthorization, token);
 
     public string Invoke(string methodName, IDictionary<string, string> parameters, bool skipAuthorization = false) =>
         invoke.Invoke(methodName, parameters, skipAuthorization);
 
     public Task<string> InvokeAsync(string methodName, IDictionary<string, string> parameters,
-                                    bool skipAuthorization = false) =>
-        invoke.InvokeAsync(methodName, parameters, skipAuthorization);
+                                    bool skipAuthorization = false, CancellationToken token = default) =>
+        invoke.InvokeAsync(methodName, parameters, skipAuthorization, token);
 
     public DateTimeOffset? LastInvokeTime => invoke.LastInvokeTime;
     public TimeSpan? LastInvokeTimeSpan => invoke.LastInvokeTimeSpan;
-    
-    public VkResponse CallLongPoll(string server, VkParameters parameters)
+
+    public VkResponse CallLongPoll(string server, VkParameters parameters, params JsonConverter[] jsonConverters)
     {
         throw new NotImplementedException();
     }
 
-    public Task<VkResponse> CallLongPollAsync(string server, VkParameters parameters)
+    public T CallLongPoll<T>(string server, VkParameters parameters, params JsonConverter[] jsonConverters)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<VkResponse> CallLongPollAsync(string server, VkParameters parameters, CancellationToken token = default)
     {
         throw new NotImplementedException();
     }
@@ -144,12 +158,12 @@ public class VkApi(
         throw new NotImplementedException();
     }
 
-    public Task<string> InvokeLongPollAsync(string server, Dictionary<string, string> parameters)
+    public Task<string> InvokeLongPollAsync(string server, Dictionary<string, string> parameters, CancellationToken token = default)
     {
         throw new NotImplementedException();
     }
 
-    public Task<JObject> InvokeLongPollExtendedAsync(string server, Dictionary<string, string> parameters)
+    public Task<JObject> InvokeLongPollExtendedAsync(string server, Dictionary<string, string> parameters, CancellationToken token = default)
     {
         throw new NotImplementedException();
     }
@@ -164,13 +178,6 @@ public class VkApi(
         needValidationHandler.ValidateAsync(validateUrl).GetAwaiter().GetResult();
 
     public int RequestsPerSecond { get; set; }
-
-    [Obsolete]
-    public IBrowser Browser
-    {
-        get => throw new NotImplementedException();
-        set => throw new NotImplementedException();
-    }
 
     public IAuthorizationFlow AuthorizationFlow
     {

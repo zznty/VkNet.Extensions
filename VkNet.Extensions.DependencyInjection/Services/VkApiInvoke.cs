@@ -5,15 +5,16 @@ using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 using VkNet.Abstractions;
 using VkNet.Abstractions.Core;
-using VkNet.Abstractions.Utils;
+using VkNet.Exception;
 using VkNet.Extensions.DependencyInjection.Abstractions;
+using VkNet.Model;
 using VkNet.Utils;
 using VkNet.Utils.JsonConverter;
 
 namespace VkNet.Extensions.DependencyInjection.Services;
 
 public class VkApiInvoke(
-    IRestClient client,
+    HttpClient client,
     ICaptchaHandler handler,
     IVkApiVersionManager versionManager,
     IVkTokenStore tokenStore,
@@ -21,7 +22,6 @@ public class VkApiInvoke(
     IAsyncRateLimiter rateLimiter)
     : IVkApiInvoke
 {
-    private readonly Uri _apiBaseUri = new("https://api.vk.com/method/");
     private readonly IEnumerable<JsonConverter> _defaultConverters = new JsonConverter[]
     {
         new VkCollectionJsonConverter(),
@@ -54,10 +54,11 @@ public class VkApiInvoke(
             ReferenceLoopHandling = ReferenceLoopHandling.Ignore
         };
     }
-    
-    public VkResponse Call(string methodName, VkParameters parameters, bool skipAuthorization = false)
+
+    public VkResponse Call(string methodName, VkParameters parameters, bool skipAuthorization = false,
+        params JsonConverter[] jsonConverters)
     {
-        return CallAsync(methodName, parameters, skipAuthorization).GetAwaiter().GetResult();
+        throw new NotImplementedException("Interface implementation is not provided");
     }
 
     public T? Call<T>(string methodName, VkParameters parameters, bool skipAuthorization = false,
@@ -66,16 +67,16 @@ public class VkApiInvoke(
         return CallAsync<T>(methodName, parameters, skipAuthorization, jsonConverters).GetAwaiter().GetResult();
     }
 
-    private async Task<T?> CallAsync<T>(string methodName, VkParameters parameters, bool skipAuthorization, JsonConverter[] jsonConverters)
+    private async Task<T?> CallAsync<T>(string methodName, VkParameters parameters, bool skipAuthorization, JsonConverter[] jsonConverters, CancellationToken token = default)
     {
-        var json = await InvokeInternalAsync(methodName, parameters, skipAuthorization);
+        var json = await InvokeInternalAsync(methodName, parameters, skipAuthorization, token);
 
         return json.ToObject<T>(JsonSerializer.Create(CreateSettings(jsonConverters)));
     }
 
-    public async Task<VkResponse> CallAsync(string methodName, VkParameters parameters, bool skipAuthorization = false)
+    public async Task<VkResponse> CallAsync(string methodName, VkParameters parameters, bool skipAuthorization = false, CancellationToken token = default)
     {
-        var json = await InvokeInternalAsync(methodName, parameters, skipAuthorization);
+        var json = await InvokeInternalAsync(methodName, parameters, skipAuthorization, token);
 
         return new(json)
         {
@@ -83,9 +84,9 @@ public class VkApiInvoke(
         };
     }
 
-    public Task<T?> CallAsync<T>(string methodName, VkParameters parameters, bool skipAuthorization = false)
+    public Task<T?> CallAsync<T>(string methodName, VkParameters parameters, bool skipAuthorization = false, CancellationToken token = default)
     {
-        return CallAsync<T>(methodName, parameters, skipAuthorization, Array.Empty<JsonConverter>());
+        return CallAsync<T>(methodName, parameters, skipAuthorization, Array.Empty<JsonConverter>(), token);
     }
 
     public string Invoke(string methodName, IDictionary<string, string> parameters, bool skipAuthorization = false)
@@ -93,13 +94,13 @@ public class VkApiInvoke(
         return InvokeAsync(methodName, parameters, skipAuthorization).GetAwaiter().GetResult();
     }
 
-    public async Task<string> InvokeAsync(string methodName, IDictionary<string, string> parameters, bool skipAuthorization = false)
+    public async Task<string> InvokeAsync(string methodName, IDictionary<string, string> parameters, bool skipAuthorization = false, CancellationToken token = default)
     {
-        var json = await InvokeInternalAsync(methodName, parameters, skipAuthorization);
+        var json = await InvokeInternalAsync(methodName, parameters, skipAuthorization, token);
         return json.ToString();
     }
 
-    private Task<JToken> InvokeInternalAsync(string methodName, IDictionary<string, string> parameters, bool skipAuthorization)
+    private Task<JToken> InvokeInternalAsync(string methodName, IDictionary<string, string> parameters, bool skipAuthorization, CancellationToken token = default)
     {
         TryAddRequiredParameters(parameters, skipAuthorization);
         
@@ -111,12 +112,33 @@ public class VkApiInvoke(
                 parameters.Add("captcha_key", key);
             }
 
-            await rateLimiter.WaitNextAsync();
+            await rateLimiter.WaitNextAsync(token);
 
-            var response = await client.PostAsync(new(_apiBaseUri, methodName), parameters, Encoding.UTF8);
+            var content = new FormUrlEncodedContent(parameters);
+
+            using var response = await client.SendAsync(new()
+            {
+                Method = HttpMethod.Post,
+                RequestUri = new(methodName, UriKind.Relative),
+                Content = content,
+            }, HttpCompletionOption.ResponseHeadersRead, token);
+            
             LastInvokeTime = DateTimeOffset.Now;
 
-            return VkErrors.IfErrorThrowException(response.Value)["response"]!;
+            response.EnsureSuccessStatusCode();
+
+            await using var stream = await response.Content.ReadAsStreamAsync(token);
+            using var textReader = new StreamReader(stream, Encoding.UTF8, leaveOpen: true);
+            await using var reader = new JsonTextReader(textReader) { CloseInput = false };
+
+            var obj = await JToken.ReadFromAsync(reader, token);
+            
+            if (obj["error"] is { } error)
+            {
+                throw new VkApiException(error.ToObject<VkError>());
+            }
+            
+            return obj["response"]!;
         });
     }
 

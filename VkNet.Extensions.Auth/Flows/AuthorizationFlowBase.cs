@@ -1,18 +1,15 @@
 ﻿using System.Security;
 using System.Security.Authentication;
-using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 using VkNet.Abstractions.Authorization;
 using VkNet.Abstractions.Core;
-using VkNet.Abstractions.Utils;
 using VkNet.Extensions.Auth.Abstractions;
 using VkNet.Extensions.Auth.Models.Auth;
 using VkNet.Extensions.Auth.Models.LibVerify;
 using VkNet.Extensions.Auth.Utils;
-using VkNet.Extensions.DependencyInjection;
 using VkNet.Extensions.DependencyInjection.Abstractions;
 using VkNet.Model;
 using VkNet.Utils;
@@ -27,7 +24,7 @@ internal abstract class AuthorizationFlowBase(
     IVkApiVersionManager versionManager,
     ILanguageService languageService,
     IAsyncRateLimiter rateLimiter,
-    IRestClient restClient,
+    HttpClient client,
     ICaptchaHandler captchaHandler,
     LibVerifyClient libVerifyClient)
     : IAuthorizationFlow
@@ -51,15 +48,15 @@ internal abstract class AuthorizationFlowBase(
         ReferenceLoopHandling = ReferenceLoopHandling.Ignore
     });
 
-    public Task<AuthorizationResult> AuthorizeAsync()
+    public Task<AuthorizationResult> AuthorizeAsync(CancellationToken token = default)
     {
         if (_apiAuthParams == null)
             throw new InvalidOperationException("Authorization parameters are not set. Call SetAuthorizationParams first.");
 
-        return AuthorizeAsync(_apiAuthParams);
+        return AuthorizeAsync(_apiAuthParams, token);
     }
 
-    protected abstract Task<AuthorizationResult> AuthorizeAsync(AndroidApiAuthParams authParams);
+    protected abstract Task<AuthorizationResult> AuthorizeAsync(AndroidApiAuthParams authParams, CancellationToken token = default);
 
     public void SetAuthorizationParams(IApiAuthParams authorizationParams)
     {
@@ -69,11 +66,11 @@ internal abstract class AuthorizationFlowBase(
         _apiAuthParams = authParams;
     }
 
-    protected async Task<AuthorizationResult> AuthAsync(AndroidApiAuthParams authParams)
+    protected async Task<AuthorizationResult> AuthAsync(AndroidApiAuthParams authParams, CancellationToken token = default)
     {
         if (authParams.IsAnonymous)
         {
-            var (anonymousToken, anonymousTokenExpiration) = await AuthAnonymousAsync(authParams);
+            var (anonymousToken, anonymousTokenExpiration) = await AuthAnonymousAsync(authParams, token);
 
             return new()
             {
@@ -90,18 +87,21 @@ internal abstract class AuthorizationFlowBase(
             parameters.Add("captcha_sid", sid);
             parameters.Add("captcha_key", key);
             
-            await rateLimiter.WaitNextAsync();
+            await rateLimiter.WaitNextAsync(token);
 
-            var response = await restClient.PostAsync(new("https://api.vk.com/oauth/token"), parameters, Encoding.UTF8);
+            var response = await client.PostAsync("https://api.vk.com/oauth/token", new FormUrlEncodedContent(parameters), token);
+            await using var stream = await response.Content.ReadAsStreamAsync(token);
+            using var reader = new StreamReader(stream);
+            await using var jsonReader = new JsonTextReader(reader);
 
-            var obj = JObject.Parse(response.Value ?? response.Message);
-
-            if (obj.TryGetValue("error", out var error) &&
+            var obj = await JToken.ReadFromAsync(jsonReader, token);
+            
+            if (obj["error"] is JObject error &&
                 AuthFlow.FromJsonString(error.ToString()) == AuthFlow.NeedValidation)
             {
-                var (loginWay, validationSid, mask, _, externalId) = obj.ToObject<NeedValidationAuthResponse>(_jsonSerializer);
+                var (loginWay, validationSid, mask, _, externalId) = obj.ToObject<NeedValidationAuthResponse>(_jsonSerializer)!;
 
-                VerifyResponse verifyResponse = null;
+                VerifyResponse? verifyResponse = null;
                 if (loginWay == LoginWay.TwoFactorLibVerify)
                 {
                     verifyResponse = await libVerifyClient.VerifyAsync(externalId, authParams.Login);
@@ -137,16 +137,19 @@ internal abstract class AuthorizationFlowBase(
                     parameters.Add("validate_token", token);
                 }
                 
-                await rateLimiter.WaitNextAsync();
+                await rateLimiter.WaitNextAsync(token);
 
-                response = await restClient.PostAsync(new("https://api.vk.com/oauth/token"), parameters, Encoding.UTF8);
+                response = await client.PostAsync("https://api.vk.com/oauth/token", new FormUrlEncodedContent(parameters), token);
+                await using var stream1 = await response.Content.ReadAsStreamAsync(token);
+                using var reader1 = new StreamReader(stream);
+                await using var jsonReader1 = new JsonTextReader(reader);
 
-                obj = JObject.Parse(response.Value ?? response.Message);
+                obj = await JToken.ReadFromAsync(jsonReader, token);
             }
             
             VkAuthErrors.IfErrorThrowException(obj);
 
-            var result = obj.ToObject<AuthorizationResult>(_jsonSerializer);
+            var result = obj.ToObject<AuthorizationResult>(_jsonSerializer)!;
 
             result.State = authParams.State;
         
@@ -171,7 +174,7 @@ internal abstract class AuthorizationFlowBase(
         };
     }
 
-    private async Task<AnonymousTokenResponse> AuthAnonymousAsync(AndroidApiAuthParams authParams)
+    private async Task<AnonymousTokenResponse> AuthAnonymousAsync(AndroidApiAuthParams authParams, CancellationToken token = default)
     {
         var parameters = new VkParameters
         {
@@ -184,12 +187,16 @@ internal abstract class AuthorizationFlowBase(
             { "v", versionManager.Version }
         };
 
-        var response = await restClient.PostAsync(new("https://api.vk.com/oauth/get_anonym_token"), parameters, Encoding.UTF8);
+        using var response = await client.PostAsync("https://api.vk.com/oauth/get_anonym_token", new FormUrlEncodedContent(parameters), token);
+        await using var stream = await response.Content.ReadAsStreamAsync(token);
+        using var reader = new StreamReader(stream);
+        await using var jsonReader = new JsonTextReader(reader);
+
+        var obj = await JToken.ReadFromAsync(jsonReader, token);
         
-        var obj = VkErrors.IfErrorThrowException(response.Value ?? response.Message);
         VkAuthErrors.IfErrorThrowException(obj);
 
-        return obj.ToObject<AnonymousTokenResponse>(_jsonSerializer);
+        return obj.ToObject<AnonymousTokenResponse>(_jsonSerializer)!;
     }
 
     private async ValueTask<string> GetDeviceIdAsync()

@@ -2,6 +2,6 @@
 
 public interface ILoginCategory
 {
-    Task ConnectAsync(string uuid);
-    Task ConnectAuthCodeAsync(string token, string uuid);
+    Task ConnectAsync(string uuid, CancellationToken token = default);
+    Task ConnectAuthCodeAsync(string token, string uuid, CancellationToken cancellationToken = default);
 }

@@ -2,7 +2,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using VkNet.Abstractions;
 using VkNet.Abstractions.Authorization;
-using VkNet.Abstractions.Utils;
 using VkNet.Extensions.Auth.Abstractions;
 using VkNet.Extensions.Auth.Abstractions.Categories;
 using VkNet.Extensions.Auth.Abstractions.Interop;
@@ -14,40 +13,49 @@ using VkNet.Extensions.Auth.Utils;
 using VkNet.Extensions.DependencyInjection;
 using VkNet.Extensions.DependencyInjection.Abstractions;
 using IAuthCategory = VkNet.Extensions.Auth.Abstractions.Categories.IAuthCategory;
-using VkApiAuth = VkNet.Extensions.Auth.Utils.VkApiAuth;
 using VkApiInvoke = VkNet.Extensions.Auth.Utils.VkApiInvoke;
 
 namespace VkNet.Extensions.Auth.Extensions;
 
 public static class AudioBypassServiceCollection
 {
-	public static IServiceCollection AddVkNetAuth(this IServiceCollection services)
+	public static T AddVkNetWithAuth<T>(this T collection) where T : IServiceCollection
 	{
-        ArgumentNullException.ThrowIfNull(services);
-
-        services.TryAddSingleton<FakeSafetyNetClient>();
-		services.TryAddSingleton<LibVerifyClient>();
-		services.TryAddSingleton<IRestClient, RestClientWithUserAgent>();
-		services.TryAddSingleton<IDeviceIdStore, DefaultDeviceIdStore>();
-		services.TryAddSingleton<ITokenRefreshHandler, TokenRefreshHandler>();
-		services.TryAddSingleton<IVkApiInvoke, VkApiInvoke>();
-		services.TryAddSingleton<IVkApiAuthAsync, VkApiAuth>();
+        ArgumentNullException.ThrowIfNull(collection);
+        
+        collection.TryAddSingleton<FakeSafetyNetClient>();
+		collection.TryAddSingleton<LibVerifyClient>();
+		collection.TryAddSingleton<IDeviceIdStore, DefaultDeviceIdStore>();
+		collection.TryAddTransient<ITokenRefreshHandler, TokenRefreshHandler>();
 			
-		services.TryAddKeyedSingleton<IAuthorizationFlow, PasswordAuthorizationFlow>(AndroidGrantType.Password);
-		services.TryAddKeyedSingleton(AndroidGrantType.PhoneConfirmationSid,
+		collection.TryAddKeyedTransient<IAuthorizationFlow>(AndroidGrantType.Password, (s, _) => s.GetRequiredService<PasswordAuthorizationFlow>());
+		collection.TryAddKeyedTransient(AndroidGrantType.PhoneConfirmationSid,
 			(s, _) => s.GetRequiredKeyedService<IAuthorizationFlow>(AndroidGrantType.Password));
-		services.TryAddKeyedSingleton<IAuthorizationFlow, WithoutPasswordAuthorizationFlow>(AndroidGrantType.WithoutPassword);
-		services.TryAddKeyedSingleton<IAuthorizationFlow, PasskeyAuthorizationFlow>(AndroidGrantType.Passkey);
+		collection.TryAddKeyedTransient<IAuthorizationFlow>(AndroidGrantType.WithoutPassword, (s, _) => s.GetRequiredService<WithoutPasswordAuthorizationFlow>());
+		collection.TryAddKeyedTransient<IAuthorizationFlow>(AndroidGrantType.Passkey, (s, _) => s.GetRequiredService<PasskeyAuthorizationFlow>());
 			
-		services.TryAddSingleton<IAuthorizationFlow, VkAndroidAuthorizationFlow>();
-			
-		services.TryAddSingleton<IAuthCategory, AuthCategory>();
-		services.TryAddSingleton<ILoginCategory, LoginCategory>();
-		services.TryAddSingleton<IEcosystemCategory, EcosystemCategory>();
+		collection.TryAddTransient<IAuthorizationFlow, VkAndroidAuthorizationFlow>();
+		
+		collection.TryAddTransient<IEcosystemCategory, EcosystemCategory>();
 		
 		if (WindowsPasskeyApi.IsSupported)
-			services.TryAddSingleton<IPlatformPasskeyApi, WindowsPasskeyApi>();
+			collection.TryAddSingleton<IPlatformPasskeyApi, WindowsPasskeyApi>();
 
-		return services;
+		collection.AddVkNet();
+
+		collection.RemoveAll<IVkApiInvoke>();
+		
+		collection.AddHttpClient<IVkApiInvoke, VkApiInvoke>(client =>
+			{
+				client.BaseAddress = new("https://api.vk.com/method/");
+				client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "VKAndroidApp/8.50-17564 (Android 12; SDK 32; arm64-v8a; Pixel 4a; ru; 2960x1440)");
+				client.DefaultRequestHeaders.TryAddWithoutValidation("X-VK-Android-Client", "new");
+			}).AddTypedClient<PasswordAuthorizationFlow>()
+			.AddTypedClient<WithoutPasswordAuthorizationFlow>()
+			.AddTypedClient<PasskeyAuthorizationFlow>()
+			.AddTypedClient<IAuthCategory, AuthCategory>()
+			.AddTypedClient<ILoginCategory, LoginCategory>();
+
+		return collection;
 	}
 }
