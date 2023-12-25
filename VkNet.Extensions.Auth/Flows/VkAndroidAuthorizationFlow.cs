@@ -15,7 +15,7 @@ public class VkAndroidAuthorizationFlow(
     IVkTokenStore tokenStore,
     IAuthCategory authCategory,
     IEcosystemCategory ecosystemCategory,
-    IPlatformPasskeyApi platformPasskeyApi) : IAuthorizationFlow
+    IPlatformPasskeyApi? platformPasskeyApi = null) : IAuthorizationFlow
 {
     private AndroidApiAuthParams? _apiAuthParams;
 
@@ -39,8 +39,8 @@ public class VkAndroidAuthorizationFlow(
             throw new InvalidOperationException("Login is not set");
 
         var (_, _, _, _, sid, nextStep) =
-            await authCategory.ValidateAccountAsync(_apiAuthParams.Login, passkeySupported: true,
-                loginWays: _apiAuthParams.SupportedWays);
+            await authCategory.ValidateAccountAsync(_apiAuthParams.Login, passkeySupported: platformPasskeyApi is not null,
+                loginWays: _apiAuthParams.SupportedWays, token: token);
 
         return await NextStepAsync(sid, nextStep?.VerificationMethod ?? LoginWay.Password, token: token);
     }
@@ -73,7 +73,7 @@ public class VkAndroidAuthorizationFlow(
 
             if (nextStep == LoginWay.Sms)
             {
-                var (_, otpSid, smsInfo, requestedCodeLength) = await ecosystemCategory.SendOtpSmsAsync(sid);
+                var (_, otpSid, smsInfo, requestedCodeLength) = await ecosystemCategory.SendOtpSmsAsync(sid, token);
 
                 sid = otpSid;
                 codeLength = requestedCodeLength;
@@ -81,7 +81,7 @@ public class VkAndroidAuthorizationFlow(
             }
             else if (nextStep == LoginWay.CallReset)
             {
-                var (_, otpSid, smsInfo, requestedCodeLength) = await ecosystemCategory.SendOtpCallResetAsync(sid);
+                var (_, otpSid, smsInfo, requestedCodeLength) = await ecosystemCategory.SendOtpCallResetAsync(sid, token);
 
                 sid = otpSid;
                 codeLength = requestedCodeLength;
@@ -89,7 +89,7 @@ public class VkAndroidAuthorizationFlow(
             }
             else if (nextStep == LoginWay.Push)
             {
-                var (_, otpSid, smsInfo, requestedCodeLength) = await ecosystemCategory.SendOtpPushAsync(sid);
+                var (_, otpSid, smsInfo, requestedCodeLength) = await ecosystemCategory.SendOtpPushAsync(sid, token);
 
                 sid = otpSid;
                 codeLength = requestedCodeLength;
@@ -108,14 +108,14 @@ public class VkAndroidAuthorizationFlow(
                         ErrorType = "no_methods_left",
                     });
 
-                var methods = await ecosystemCategory.GetVerificationMethodsAsync(sid);
+                var methods = await ecosystemCategory.GetVerificationMethodsAsync(sid, token);
 
                 nextStep = await _apiAuthParams.VerificationMethodRequestedAsync(methods.Methods, new(sid));
                 passwordProfile = null;
                 continue;
             }
 
-            var response = await ecosystemCategory.CheckOtpAsync(sid, nextStep, code);
+            var response = await ecosystemCategory.CheckOtpAsync(sid, nextStep, code, token);
             sid = response.Sid;
 
             if (!response.ProfileExist)
@@ -147,6 +147,9 @@ public class VkAndroidAuthorizationFlow(
 
     private async Task<AuthorizationResult> AuthByPasskeyAsync(string sid)
     {
+        if (platformPasskeyApi is null)
+            throw new PlatformNotSupportedException("Current platform does not support passkey authorization");
+        
         if (_apiAuthParams!.CodeRequestedAsync is not null)
             await _apiAuthParams.CodeRequestedAsync(LoginWay.Passkey, new(sid));
         
