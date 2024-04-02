@@ -1,5 +1,4 @@
-﻿DwmSetWindowAttribute
-WebAuthNIsUserVerifyingPlatformAuthenticatorAvailable
+﻿WebAuthNIsUserVerifyingPlatformAuthenticatorAvailable
 WebAuthNAuthenticatorGetAssertion
 WebAuthNFreeAssertion
 WebAuthNCancelCurrentOperation
