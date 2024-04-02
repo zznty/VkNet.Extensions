@@ -66,11 +66,11 @@ public class ApplicationHostService(IServiceProvider serviceProvider, TokenCheck
         if (!navigationService.Navigate(typeof(LoginPage)))
             return;
         
-        navigationService.GetNavigationControl().SetServiceProvider(serviceProvider);
-        
         var loginViewModel = scope.ServiceProvider.GetRequiredService<LoginViewModel>();
+        var loginResult = await loginViewModel.LoggedIn.Task;
         
-        if (await loginViewModel.LoggedIn.Task)
+        navigationService.GetNavigationControl().SetServiceProvider(serviceProvider);
+        if (loginResult)
             navigationService.Navigate(typeof(UserInfoPage));
     }
 }

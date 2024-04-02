@@ -80,7 +80,6 @@ public record AndroidApiAuthParams(string? Login, string? Sid, CodeRequestedDele
     public ResponseType? ResponseType { get; set; }
     [Obsolete("Not implemented", true)]
     public bool? Revoke { get; set; }
-    [Obsolete("Not implemented", true)]
     public string? Code { get; set; }
     [Obsolete("Not implemented", true)]
     public bool IsTokenUpdateAutomatically { get; set; }

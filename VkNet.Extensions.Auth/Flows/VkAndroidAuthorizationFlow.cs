@@ -47,6 +47,7 @@ public class VkAndroidAuthorizationFlow(
 
     private async Task<AuthorizationResult> NextStepAsync(string sid, LoginWay nextStep, EcosystemProfile? passwordProfile = null, CancellationToken token = default)
     {
+        string? code = null;
         while (!_apiAuthParams!.CancellationToken.IsCancellationRequested)
         {
             if (nextStep == LoginWay.Passkey) return await AuthByPasskeyAsync(sid);
@@ -60,6 +61,7 @@ public class VkAndroidAuthorizationFlow(
                 passwordFlow.SetAuthorizationParams(_apiAuthParams! with
                 {
                     Sid = sid,
+                    Code = code,
                     Password = await _apiAuthParams.CodeRequestedAsync!(LoginWay.Password,
                         passwordProfile is null ? new AuthState(sid) : new ProfileAuthState(sid, passwordProfile)),
                     SupportedWays = new[] { LoginWay.Push, LoginWay.Email }
@@ -96,7 +98,7 @@ public class VkAndroidAuthorizationFlow(
                 info = smsInfo;
             }
 
-            var code = await _apiAuthParams.CodeRequestedAsync!(nextStep, new VerificationAuthState(sid, info, codeLength));
+            code = await _apiAuthParams.CodeRequestedAsync!(nextStep, new VerificationAuthState(sid, info, codeLength));
 
             if (code is null)
             {

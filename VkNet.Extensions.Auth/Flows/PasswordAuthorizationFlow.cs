@@ -36,6 +36,8 @@ internal class PasswordAuthorizationFlow(
         parameters.Add("grant_type", AndroidGrantType.Password);
         parameters.Add("username", authParams.Login);
         parameters.Add("password", authParams.Password);
+        if (!string.IsNullOrEmpty(authParams.Code))
+            parameters.Add("code", authParams.Code);
         parameters.Add("flow_type", "tg_flow");
         parameters.Add("2fa_supported", true);
         parameters.Add("vk_connect_auth", true);
