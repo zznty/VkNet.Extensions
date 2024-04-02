@@ -19,79 +19,68 @@ public class VkApiInvoke(
     IVkApiVersionManager versionManager,
     IVkTokenStore tokenStore,
     ILanguageService languageService,
-    IAsyncRateLimiter rateLimiter)
+    IAsyncRateLimiter rateLimiter,
+    ITokenRefreshHandler? tokenRefreshHandler = null)
     : IVkApiInvoke
 {
-    private readonly IEnumerable<JsonConverter> _defaultConverters = new JsonConverter[]
+    private readonly JsonSerializer _defaultSerializer = JsonSerializer.Create(new()
     {
-        new VkCollectionJsonConverter(),
-        new UnixDateTimeConverter(),
-        new AttachmentJsonConverter(),
-        new StringEnumConverter(),
-    };
+        Converters = [
+            new VkCollectionJsonConverter(),
+            new UnixDateTimeConverter(),
+            new AttachmentJsonConverter(),
+            new StringEnumConverter()
+        ],
+        ContractResolver = new DefaultContractResolver
+        {
+            NamingStrategy = new SnakeCaseNamingStrategy()
+        },
+        MaxDepth = null,
+        ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+    });
 
-    private void TryAddRequiredParameters(IDictionary<string, string> parameters, bool skipAuthorization)
+    protected virtual ValueTask TryAddRequiredParametersAsync(IDictionary<string, string> parameters, bool skipAuthorization)
     {
         parameters.TryAdd("v", versionManager.Version);
         parameters.TryAdd("lang", languageService.GetLanguage()?.ToString() ?? "ru");
         if (!skipAuthorization)
             parameters.TryAdd("access_token", tokenStore.Token);
-    }
-
-    private JsonSerializerSettings CreateSettings(IEnumerable<JsonConverter> userConverters)
-    {
-        var converters = _defaultConverters.ToList(); // i actually wanna clone the array here
-        converters.AddRange(userConverters);
         
-        return new()
-        {
-            Converters = converters,
-            ContractResolver = new DefaultContractResolver
-            {
-                NamingStrategy = new SnakeCaseNamingStrategy()
-            },
-            MaxDepth = null,
-            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
-        };
+        return default;
     }
 
     public VkResponse Call(string methodName, VkParameters parameters, bool skipAuthorization = false,
         params JsonConverter[] jsonConverters)
     {
-        throw new NotImplementedException("Interface implementation is not provided");
+        throw new NotSupportedException("Synchronous method calls are not supported by this implementation. Use async overload instead.");
     }
 
     public T? Call<T>(string methodName, VkParameters parameters, bool skipAuthorization = false,
                       params JsonConverter[] jsonConverters)
     {
-        return CallAsync<T>(methodName, parameters, skipAuthorization, jsonConverters).GetAwaiter().GetResult();
-    }
-
-    private async Task<T?> CallAsync<T>(string methodName, VkParameters parameters, bool skipAuthorization, JsonConverter[] jsonConverters, CancellationToken token = default)
-    {
-        var json = await InvokeInternalAsync(methodName, parameters, skipAuthorization, token);
-
-        return json.ToObject<T>(JsonSerializer.Create(CreateSettings(jsonConverters)));
+        if (jsonConverters.Length > 0)
+            throw new ArgumentException("This implementation does not support JsonConverters", nameof(jsonConverters));
+        
+        return CallAsync<T>(methodName, parameters, skipAuthorization).GetAwaiter().GetResult();
     }
 
     public async Task<VkResponse> CallAsync(string methodName, VkParameters parameters, bool skipAuthorization = false, CancellationToken token = default)
     {
         var json = await InvokeInternalAsync(methodName, parameters, skipAuthorization, token);
 
-        return new(json)
-        {
-            RawJson = json.ToString()
-        };
+        return new(json);
     }
 
-    public Task<T?> CallAsync<T>(string methodName, VkParameters parameters, bool skipAuthorization = false, CancellationToken token = default)
+    public async Task<T?> CallAsync<T>(string methodName, VkParameters parameters, bool skipAuthorization = false, CancellationToken token = default)
     {
-        return CallAsync<T>(methodName, parameters, skipAuthorization, Array.Empty<JsonConverter>(), token);
+        var json = await InvokeInternalAsync(methodName, parameters, skipAuthorization, token);
+
+        return json.ToObject<T>(_defaultSerializer);
     }
 
     public string Invoke(string methodName, IDictionary<string, string> parameters, bool skipAuthorization = false)
     {
-        return InvokeAsync(methodName, parameters, skipAuthorization).GetAwaiter().GetResult();
+        throw new NotSupportedException("Synchronous method calls are not supported by this implementation. Use async overload instead.");
     }
 
     public async Task<string> InvokeAsync(string methodName, IDictionary<string, string> parameters, bool skipAuthorization = false, CancellationToken token = default)
@@ -100,11 +89,11 @@ public class VkApiInvoke(
         return json.ToString();
     }
 
-    private Task<JToken> InvokeInternalAsync(string methodName, IDictionary<string, string> parameters, bool skipAuthorization, CancellationToken token = default)
+    private async Task<JToken> InvokeInternalAsync(string methodName, IDictionary<string, string> parameters, bool skipAuthorization, CancellationToken token = default)
     {
-        TryAddRequiredParameters(parameters, skipAuthorization);
+        await TryAddRequiredParametersAsync(parameters, skipAuthorization);
         
-        return handler.Perform(async (sid, key) =>
+        return await handler.Perform(async (sid, key) =>
         {
             if (sid is { } captchaSid)
             {
@@ -132,13 +121,18 @@ public class VkApiInvoke(
             await using var reader = new JsonTextReader(textReader) { CloseInput = false };
 
             var obj = await JToken.ReadFromAsync(reader, token);
+
+            if (obj["error"] is not { } error) return obj["response"]!;
             
-            if (obj["error"] is { } error)
-            {
-                throw new VkApiException(error.ToObject<VkError>());
-            }
-            
-            return obj["response"]!;
+            var vkError = error.ToObject<VkError>();
+
+            if (vkError?.ErrorCode is not (5 or 1117 or 1114) || // token has expired
+                tokenRefreshHandler == null ||
+                await tokenRefreshHandler.RefreshTokenAsync(tokenStore.Token) is not { } newToken)
+                throw new VkApiException(vkError);
+                
+            parameters["access_token"] = newToken;
+            return await InvokeInternalAsync(methodName, parameters, skipAuthorization);
         });
     }
 

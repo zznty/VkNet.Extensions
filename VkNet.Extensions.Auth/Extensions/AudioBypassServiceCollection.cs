@@ -50,6 +50,7 @@ public static class AudioBypassServiceCollection
 				client.BaseAddress = new("https://api.vk.com/method/");
 				client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "VKAndroidApp/8.50-17564 (Android 12; SDK 32; arm64-v8a; Pixel 4a; ru; 2960x1440)");
 				client.DefaultRequestHeaders.TryAddWithoutValidation("X-VK-Android-Client", "new");
+				client.DefaultRequestHeaders.TryAddWithoutValidation("X-Quic", "1");
 			}).AddTypedClient<PasswordAuthorizationFlow>()
 			.AddTypedClient<WithoutPasswordAuthorizationFlow>()
 			.AddTypedClient<PasskeyAuthorizationFlow>()
