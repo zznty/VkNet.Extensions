@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
 using VkNet.Abstractions.Authorization;
 using VkNet.Extensions.Auth.Abstractions.Categories;
 using VkNet.Extensions.Auth.Abstractions.Interop;
@@ -19,6 +20,7 @@ public class VkAndroidAuthorizationFlow(
 {
     private const string PasskeyOrigin = "https://id.vk.ru";
     private AndroidApiAuthParams? _apiAuthParams;
+    private readonly JsonSerializerOptions _jsonSerializerOptions = new(JsonSerializerDefaults.Web);
 
     public async Task<AuthorizationResult> AuthorizeAsync(CancellationToken token = default)
     {
@@ -157,8 +159,10 @@ public class VkAndroidAuthorizationFlow(
             await _apiAuthParams.CodeRequestedAsync(LoginWay.Passkey, new(sid));
         
         var (_, passkeyData) = await authCategory.BeginPasskeyAsync(sid);
+        
+        var data = JsonSerializer.Deserialize<PasskeyDataResponse>(passkeyData, _jsonSerializerOptions)!;
 
-        var passkeyResponse = await platformPasskeyApi.RequestPasskeyAsync(passkeyData, PasskeyOrigin);
+        var passkeyResponse = await platformPasskeyApi.RequestPasskeyAsync(data, PasskeyOrigin);
 
         var flow = serviceProvider.GetRequiredKeyedService<IAuthorizationFlow>(AndroidGrantType.Passkey);
 

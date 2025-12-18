@@ -17,9 +17,9 @@ public class VkApiInvoke(
     : VkNet.Extensions.DependencyInjection.Services.VkApiInvoke(client, handler, versionManager, tokenStore,
         languageService, rateLimiter, tokenRefreshHandler)
 {
-    protected override async ValueTask TryAddRequiredParametersAsync(IDictionary<string, string> parameters, bool skipAuthorization)
+    protected override async ValueTask TryAddRequiredParametersAsync(IDictionary<string, string> parameters)
     {
-        await base.TryAddRequiredParametersAsync(parameters, skipAuthorization);
+        await base.TryAddRequiredParametersAsync(parameters);
         parameters.TryAdd("device_id", await deviceIdProvider.GetDeviceIdAsync());
     }
 }

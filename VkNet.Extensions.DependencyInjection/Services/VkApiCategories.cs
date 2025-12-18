@@ -4,7 +4,7 @@ using VkNet.Abstractions.Category;
 
 namespace VkNet.Extensions.DependencyInjection.Services;
 
-public class VkApiCategories(
+internal sealed class VkApiCategories(
     IUsersCategory users,
     IFriendsCategory friends,
     IStatusCategory status,

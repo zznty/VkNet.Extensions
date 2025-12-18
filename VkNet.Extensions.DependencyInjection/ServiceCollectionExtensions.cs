@@ -15,46 +15,78 @@ namespace VkNet.Extensions.DependencyInjection;
 
 public static class ServiceCollectionExtensions
 {
-
-    public static T AddVkNet<T>(this T collection) where T : IServiceCollection
+    extension<T>(T collection) where T : IServiceCollection
     {
-        return AddVkNet(collection, (s, c) => { });
-    }
-    public static T AddVkNet<T>(this T collection, Action<HttpClient> configureHttpClient) where T : IServiceCollection
-    {
-        return AddVkNet(collection, (s, c) => configureHttpClient(c));
-    }
-    
-    public static T AddVkNet<T>(this T collection, Action<IServiceProvider, HttpClient> configureHttpClient) where T : IServiceCollection
-    {
-        ArgumentNullException.ThrowIfNull(collection);
-
-        collection.AddHttpClient<IVkApiInvoke, VkApiInvoke>((provider, client) =>
+        /// <summary>
+        /// Регистрирует необходимые сервисы и клиент VK API
+        /// </summary>
+        /// <remarks>
+        /// Переопределения сервисов или хранилищ должны быть зарегистрованы в коллекцию до вызова этого метода
+        /// </remarks>
+        /// <seealso cref="IVkApi"/>
+        /// <seealso cref="IVkTokenStore"/>
+        /// <seealso cref="IAsyncCaptchaSolver"/>
+        public T AddVkNet()
         {
-            client.BaseAddress = new("https://api.vk.com/method/");
-            configureHttpClient(provider, client);
-        });
-        
-        collection.TryAddSingleton<ICaptchaHandler, AsyncCaptchaHandler>();
-        collection.TryAddTransient<IVkApiAuthAsync, VkApiAuth>();
-        collection.TryAddSingleton<IVkTokenStore, DefaultVkTokenStore>();
-        collection.TryAddTransient<IVkApi, Services.VkApi>();
-        collection.TryAddSingleton<IAsyncCaptchaSolver>(_ => null!);
+            return AddVkNet(collection, (s, c) => { });
+        }
 
-        collection.TryAddTransient<IVkApiAuth>(s => s.GetRequiredService<IVkApiAuthAsync>());
-        collection.TryAddTransient<IVkInvoke>(s => s.GetRequiredService<IVkApi>());
-        collection.TryAddSingleton<IAsyncRateLimiter>(_ => new AsyncRateLimiter(TimeSpan.FromSeconds(1), 3));
-        collection.RegisterDefaultDependencies();
+        /// <summary>
+        /// Регистрирует необходимые сервисы и клиент Vk API
+        /// </summary>
+        /// <remarks>
+        /// Переопределения сервисов или хранилищ должны быть зарегистрованы в коллекцию до вызова этого метода
+        /// </remarks>
+        /// <param name="configureHttpClient">Обработчик дополнительной настройки <see cref="HttpClient"/> клиента VK API</param>
+        /// <seealso cref="IVkApi"/>
+        /// <seealso cref="IVkTokenStore"/>
+        /// <seealso cref="IAsyncCaptchaSolver"/>
+        public T AddVkNet(Action<HttpClient> configureHttpClient)
+        {
+            return AddVkNet(collection, (s, c) => configureHttpClient(c));
+        }
 
-        // unregister unsupported types
-        collection.RemoveAll<IRestClient>();
-        collection.RemoveAll<IWebProxy>();
-        collection.RemoveAll<IAwaitableConstraint>();
-        collection.RemoveAll<INeedValidationHandler>();
+        /// <summary>
+        /// Регистрирует необходимые сервисы и клиент Vk API
+        /// </summary>
+        /// <remarks>
+        /// Переопределения сервисов или хранилищ должны быть зарегистрованы в коллекцию до вызова этого метода
+        /// </remarks>
+        /// <param name="configureHttpClient">Обработчик дополнительной настройки <see cref="HttpClient"/> клиента VK API</param>
+        /// <seealso cref="IVkApi"/>
+        /// <seealso cref="IVkTokenStore"/>
+        /// <seealso cref="IAsyncCaptchaSolver"/>
+        public T AddVkNet(Action<IServiceProvider, HttpClient> configureHttpClient)
+        {
+            ArgumentNullException.ThrowIfNull(collection);
+
+            collection.AddHttpClient<IVkApiInvoke, VkApiInvoke>((provider, client) =>
+            {
+                client.BaseAddress = new("https://api.vk.com/method/");
+                configureHttpClient(provider, client);
+            });
         
-        AddCategories(collection);
+            collection.TryAddSingleton<ICaptchaHandler, AsyncCaptchaHandler>();
+            collection.TryAddTransient<IVkApiAuthAsync, VkApiAuth>();
+            collection.TryAddSingleton<IVkTokenStore, DefaultVkTokenStore>();
+            collection.TryAddTransient<IVkApi, Services.VkApi>();
+            collection.TryAddSingleton<IAsyncCaptchaSolver>(_ => null!);
+
+            collection.TryAddTransient<IVkApiAuth>(s => s.GetRequiredService<IVkApiAuthAsync>());
+            collection.TryAddTransient<IVkInvoke>(s => s.GetRequiredService<IVkApi>());
+            collection.TryAddSingleton<IAsyncRateLimiter>(_ => new AsyncRateLimiter(TimeSpan.FromSeconds(1), 3));
+            collection.RegisterDefaultDependencies();
+
+            // unregister unsupported types
+            collection.RemoveAll<IRestClient>();
+            collection.RemoveAll<IWebProxy>();
+            collection.RemoveAll<IAwaitableConstraint>();
+            collection.RemoveAll<INeedValidationHandler>();
         
-        return collection;
+            AddCategories(collection);
+        
+            return collection;
+        }
     }
 
     private static void AddCategories(IServiceCollection collection)

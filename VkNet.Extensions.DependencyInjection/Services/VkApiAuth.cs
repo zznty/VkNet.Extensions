@@ -5,7 +5,7 @@ using VkNet.Model;
 
 namespace VkNet.Extensions.DependencyInjection.Services;
 
-public class VkApiAuth(
+internal sealed class VkApiAuth(
     IAuthorizationFlow authorizationFlow,
     IVkTokenStore tokenStore,
     ITokenRefreshHandler? tokenRefreshHandler = null)

@@ -37,12 +37,21 @@ public class AsyncRateLimiter(TimeSpan window, int maxRequestsPerWindow) : IAsyn
         _semaphore.Release();
     }
 
-    public ValueTask WaitNextAsync(int timeout) => WaitNextAsync(TimeSpan.FromMilliseconds(timeout));
+    public ValueTask<bool> WaitNextAsync(int timeout) => WaitNextAsync(TimeSpan.FromMilliseconds(timeout));
 
-    public async ValueTask WaitNextAsync(TimeSpan timeout)
+    public async ValueTask<bool> WaitNextAsync(TimeSpan timeout)
     {
-        using var source = new CancellationTokenSource(timeout);
-        await WaitNextAsync(source.Token);
+        try
+        {
+            using var source = new CancellationTokenSource(timeout);
+            await WaitNextAsync(source.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            return false;
+        }
+
+        return true;
     }
 
     public bool TryGetNext()

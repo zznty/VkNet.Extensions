@@ -13,7 +13,7 @@ using ICaptchaHandler = VkNet.Extensions.DependencyInjection.Abstractions.ICaptc
 
 namespace VkNet.Extensions.DependencyInjection.Services;
 
-public sealed class VkApi(
+internal sealed class VkApi(
     IVkApiAuthAsync auth,
     IVkApiInvoke invoke,
     ILanguageService languageService,

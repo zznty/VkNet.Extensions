@@ -7,7 +7,7 @@ using IAuthCategory = VkNet.Extensions.Auth.Abstractions.Categories.IAuthCategor
 
 namespace VkNet.Extensions.Auth.Utils;
 
-public class TokenRefreshHandler(
+internal sealed class TokenRefreshHandler(
     IExchangeTokenStore exchangeTokenStore,
     IServiceProvider serviceProvider,
     IVkTokenStore tokenStore)

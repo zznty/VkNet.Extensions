@@ -15,7 +15,6 @@ namespace VkNet.Extensions.Auth.Interop.Win32;
 
 public class WindowsPasskeyApi : IPlatformPasskeyApi
 {
-    private readonly JsonSerializerOptions _jsonSerializerOptions = new(JsonSerializerDefaults.Web);
 
     internal static bool IsSupported
     {
@@ -30,7 +29,7 @@ public class WindowsPasskeyApi : IPlatformPasskeyApi
         }
     }
     
-    public Task<string> RequestPasskeyAsync(string passkeyData, string origin)
+    public Task<string> RequestPasskeyAsync(PasskeyDataResponse passkeyData, string origin)
     {
         return Task.Run(() =>
         {
@@ -68,11 +67,9 @@ public class WindowsPasskeyApi : IPlatformPasskeyApi
             throw new WebAuthNException(hResult);
     }
     
-    private unsafe void BeginPasskey(string passkeyData, string origin, out byte[] authenticatorData, out byte[] signature,
+    private static unsafe void BeginPasskey(PasskeyDataResponse data, string origin, out byte[] authenticatorData, out byte[] signature,
         out byte[] userHandle, out string clientDataJson, out byte[] usedCredential)
     {
-        var data = JsonSerializer.Deserialize<PasskeyDataResponse>(passkeyData, _jsonSerializerOptions)!;
-
         HRESULT hResult;
         WEBAUTHN_ASSERTION* assertion;
         fixed (char* publicKeyPtr = &PInvoke.WebauthnCredentialTypePublicKey.GetPinnableReference())

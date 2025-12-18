@@ -41,7 +41,7 @@ public class VkApiInvoke(
         ReferenceLoopHandling = ReferenceLoopHandling.Ignore
     });
 
-    protected virtual ValueTask TryAddRequiredParametersAsync(IDictionary<string, string> parameters, bool skipAuthorization)
+    protected virtual ValueTask TryAddRequiredParametersAsync(IDictionary<string, string> parameters)
     {
         parameters.TryAdd("v", versionManager.Version);
         parameters.TryAdd("lang", languageService.GetLanguage()?.ToString() ?? "ru");
@@ -91,7 +91,7 @@ public class VkApiInvoke(
 
     private async Task<JToken> InvokeInternalAsync(string methodName, IDictionary<string, string> parameters, bool skipAuthorization, CancellationToken token = default)
     {
-        await TryAddRequiredParametersAsync(parameters, skipAuthorization);
+        await TryAddRequiredParametersAsync(parameters);
         
         return await handler.Perform(async captchaResponse =>
         {

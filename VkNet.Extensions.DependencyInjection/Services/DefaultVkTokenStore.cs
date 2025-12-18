@@ -2,7 +2,7 @@
 
 namespace VkNet.Extensions.DependencyInjection.Services;
 
-public class DefaultVkTokenStore : IVkTokenStore
+internal sealed class DefaultVkTokenStore : IVkTokenStore
 {
     private string? _token;
     private DateTimeOffset? _expiration;

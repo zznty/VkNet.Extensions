@@ -6,7 +6,7 @@ using VkNet.Utils;
 namespace VkNet.Extensions.DependencyInjection.Services;
 
 /// <inheritdoc />
-public class AsyncCaptchaHandler : ICaptchaHandler
+internal sealed class AsyncCaptchaHandler : ICaptchaHandler
 {
     private static readonly MethodInfo PerformAsyncMethod = typeof(AsyncCaptchaHandler).GetMethod(nameof(PerformAsync), BindingFlags.Instance | BindingFlags.NonPublic)!;
     

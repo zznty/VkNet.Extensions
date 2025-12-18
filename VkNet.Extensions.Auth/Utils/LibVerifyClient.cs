@@ -3,7 +3,7 @@ using VkNet.Extensions.Auth.Models.LibVerify;
 
 namespace VkNet.Extensions.Auth.Utils;
 
-public class LibVerifyClient
+internal sealed class LibVerifyClient
 {
     private static readonly Guid DeviceId = new("4bdec837-2820-4854-8c73-61a79577482e");
     private const string DeviceName = "MusicX+MusicX";
