@@ -3,7 +3,7 @@ using VkNet.Extensions.Auth.Abstractions;
 
 namespace WpfApp.Services.Stores;
 
-public class RegistryDeviceIdStore : IDeviceIdStore
+public class RegistryDeviceIdProvider : IDeviceIdProvider
 {
     public ValueTask<string?> GetDeviceIdAsync()
     {

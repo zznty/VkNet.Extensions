@@ -1,6 +1,7 @@
 ﻿using VkNet.Abstractions.Core;
 using VkNet.Extensions.Auth.Abstractions;
 using VkNet.Extensions.DependencyInjection.Abstractions;
+using ICaptchaHandler = VkNet.Extensions.DependencyInjection.Abstractions.ICaptchaHandler;
 
 namespace VkNet.Extensions.Auth.Utils;
 
@@ -12,14 +13,13 @@ public class VkApiInvoke(
     ILanguageService languageService,
     IAsyncRateLimiter rateLimiter,
     ITokenRefreshHandler tokenRefreshHandler,
-    IDeviceIdStore deviceIdStore)
-    : VkNet.Extensions.DependencyInjection.Services.VkApiInvoke(client, handler, versionManager, tokenStore, languageService, rateLimiter, tokenRefreshHandler)
+    IDeviceIdProvider deviceIdProvider)
+    : VkNet.Extensions.DependencyInjection.Services.VkApiInvoke(client, handler, versionManager, tokenStore,
+        languageService, rateLimiter, tokenRefreshHandler)
 {
     protected override async ValueTask TryAddRequiredParametersAsync(IDictionary<string, string> parameters, bool skipAuthorization)
     {
         await base.TryAddRequiredParametersAsync(parameters, skipAuthorization);
-        
-        if (await deviceIdStore.GetDeviceIdAsync() is { } deviceId)
-            parameters.TryAdd("device_id", deviceId);
+        parameters.TryAdd("device_id", await deviceIdProvider.GetDeviceIdAsync());
     }
 }

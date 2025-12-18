@@ -9,6 +9,7 @@ using VkNet.Extensions.DependencyInjection.Abstractions;
 using VkNet.Model;
 using VkNet.Utils;
 using VkNet.Utils.AntiCaptcha;
+using ICaptchaHandler = VkNet.Extensions.DependencyInjection.Abstractions.ICaptchaHandler;
 
 namespace VkNet.Extensions.DependencyInjection.Services;
 

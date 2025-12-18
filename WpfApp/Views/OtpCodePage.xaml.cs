@@ -1,6 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 using System.Windows.Input;
-using Wpf.Ui.Controls;
+using Wpf.Ui.Abstractions.Controls;
 using WpfApp.ViewModels;
 
 namespace WpfApp.Views;

@@ -23,9 +23,7 @@ public static class AudioBypassServiceCollection
 	{
         ArgumentNullException.ThrowIfNull(collection);
         
-        collection.TryAddSingleton<FakeSafetyNetClient>();
 		collection.TryAddSingleton<LibVerifyClient>();
-		collection.TryAddSingleton<IDeviceIdStore, DefaultDeviceIdStore>();
 		collection.TryAddTransient<ITokenRefreshHandler, TokenRefreshHandler>();
 			
 		collection.TryAddKeyedTransient<IAuthorizationFlow>(AndroidGrantType.Password, (s, _) => s.GetRequiredService<PasswordAuthorizationFlow>());

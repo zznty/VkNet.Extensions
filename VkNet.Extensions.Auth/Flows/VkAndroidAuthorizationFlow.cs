@@ -65,7 +65,7 @@ public class VkAndroidAuthorizationFlow(
                     Code = code,
                     Password = await _apiAuthParams.CodeRequestedAsync!(LoginWay.Password,
                         passwordProfile is null ? new AuthState(sid) : new ProfileAuthState(sid, passwordProfile)),
-                    SupportedWays = new[] { LoginWay.Push, LoginWay.Email }
+                    SupportedWays = [LoginWay.Push, LoginWay.Email]
                 });
 
                 return await passwordFlow.AuthorizeAsync(token);
@@ -139,7 +139,7 @@ public class VkAndroidAuthorizationFlow(
 
             flow.SetAuthorizationParams(_apiAuthParams with
             {
-                Sid = sid, Password = null, SupportedWays = new[] { LoginWay.Push, LoginWay.Email }
+                Sid = sid, Password = null, SupportedWays = [LoginWay.Push, LoginWay.Email]
             });
 
             return await flow.AuthorizeAsync(token);
@@ -166,7 +166,7 @@ public class VkAndroidAuthorizationFlow(
         {
             Sid = sid, 
             PasskeyData = passkeyResponse, 
-            SupportedWays = new[] { LoginWay.Passkey }
+            SupportedWays = [LoginWay.Passkey]
         });
         
         return await flow.AuthorizeAsync();

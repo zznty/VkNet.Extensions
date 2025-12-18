@@ -14,13 +14,13 @@ using VkNet.Extensions.DependencyInjection.Abstractions;
 using VkNet.Model;
 using VkNet.Utils;
 using VkNet.Utils.JsonConverter;
+using ICaptchaHandler = VkNet.Extensions.DependencyInjection.Abstractions.ICaptchaHandler;
 
 namespace VkNet.Extensions.Auth.Flows;
 
 internal abstract class AuthorizationFlowBase(
     IVkTokenStore tokenStore,
-    FakeSafetyNetClient safetyNetClient,
-    IDeviceIdStore deviceIdStore,
+    IDeviceIdProvider deviceIdProvider,
     IVkApiVersionManager versionManager,
     ILanguageService languageService,
     IAsyncRateLimiter rateLimiter,
@@ -80,12 +80,11 @@ internal abstract class AuthorizationFlowBase(
             };
         }
 
-        return await captchaHandler.Perform(async (sid, key) =>
+        return await captchaHandler.Perform(async captchaResponse =>
         {
             var parameters = await BuildParameters(authParams);
             
-            parameters.Add("captcha_sid", sid);
-            parameters.Add("captcha_key", key);
+            captchaResponse?.AddTo(parameters);
             
             await rateLimiter.WaitNextAsync(token);
 
@@ -165,7 +164,7 @@ internal abstract class AuthorizationFlowBase(
             { "sid", authParams.Sid },
             { "scope", "all" },
             { "supported_ways", authParams.SupportedWays },
-            { "device_id", await GetDeviceIdAsync() },
+            { "device_id", await deviceIdProvider.GetDeviceIdAsync() },
             { "api_id", authParams.ApplicationId },
             { "https", true },
             { "lang", languageService.GetLanguage()?.ToString() ?? "ru" },
@@ -181,7 +180,7 @@ internal abstract class AuthorizationFlowBase(
             { "client_id", authParams.ApplicationId },
             { "api_id", authParams.ApplicationId },
             { "client_secret", authParams.ClientSecret },
-            { "device_id", await GetDeviceIdAsync()},
+            { "device_id", await deviceIdProvider.GetDeviceIdAsync()},
             { "https", true },
             { "lang", languageService.GetLanguage()?.ToString() ?? "ru" },
             { "v", versionManager.Version }
@@ -197,22 +196,5 @@ internal abstract class AuthorizationFlowBase(
         VkAuthErrors.IfErrorThrowException(obj);
 
         return obj.ToObject<AnonymousTokenResponse>(_jsonSerializer)!;
-    }
-
-    private async ValueTask<string> GetDeviceIdAsync()
-    {
-        var deviceId = await deviceIdStore.GetDeviceIdAsync();
-        if (!string.IsNullOrEmpty(deviceId))
-            return deviceId;
-
-        var checkIn = await safetyNetClient.CheckIn();
-
-        var response = await safetyNetClient.Register(checkIn);
-
-        deviceId = $"{checkIn.AndroidId}:{response.Split('=')[1]}";
-        
-        await deviceIdStore.SetDeviceIdAsync(deviceId);
-
-        return deviceId;
     }
 }

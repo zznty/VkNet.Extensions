@@ -1,7 +1,7 @@
 ﻿using VkNet.Abstractions;
 using VkNet.Enums.Filters;
 using VkNet.Model;
-using Wpf.Ui.Controls;
+using Wpf.Ui.Abstractions.Controls;
 
 namespace WpfApp.ViewModels;
 
@@ -9,15 +9,16 @@ public class UserInfoViewModel(IUsersCategory category) : ViewModelBase, INaviga
 {
     public User? CurrentUser { get; private set; }
     
-    public async void OnNavigatedTo()
+    public async Task OnNavigatedToAsync()
     {
         var response = await category.GetAsync(Enumerable.Empty<long>(), ProfileFields.FirstName | ProfileFields.LastName | ProfileFields.Photo200);
         
         CurrentUser = response.FirstOrDefault();
     }
 
-    public void OnNavigatedFrom()
+    public Task OnNavigatedFromAsync()
     {
         CurrentUser = null;
+        return Task.CompletedTask;
     }
 }

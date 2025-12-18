@@ -28,7 +28,7 @@ public partial class App
             
             // Vk Net implementations
             services.AddSingleton<IVkTokenStore, RegistryTokenStore>();
-            services.AddSingleton<IDeviceIdStore, RegistryDeviceIdStore>();
+            services.AddSingleton<IDeviceIdProvider, RegistryDeviceIdProvider>();
             services.AddSingleton<IExchangeTokenStore, RegistryExchangeTokenStore>();
 
             // Wpf Ui services

@@ -10,6 +10,7 @@ using VkNet.Extensions.DependencyInjection.Abstractions;
 using VkNet.Model;
 using VkNet.Utils;
 using VkNet.Utils.JsonConverter;
+using ICaptchaHandler = VkNet.Extensions.DependencyInjection.Abstractions.ICaptchaHandler;
 
 namespace VkNet.Extensions.DependencyInjection.Services;
 
@@ -23,7 +24,8 @@ public class VkApiInvoke(
     ITokenRefreshHandler? tokenRefreshHandler = null)
     : IVkApiInvoke
 {
-    private readonly JsonSerializer _defaultSerializer = JsonSerializer.Create(new()
+    private const string AuthorizationScheme = "Bearer";
+    public static readonly JsonSerializer DefaultSerializer = JsonSerializer.Create(new()
     {
         Converters = [
             new VkCollectionJsonConverter(),
@@ -43,8 +45,6 @@ public class VkApiInvoke(
     {
         parameters.TryAdd("v", versionManager.Version);
         parameters.TryAdd("lang", languageService.GetLanguage()?.ToString() ?? "ru");
-        if (!skipAuthorization)
-            parameters.TryAdd("access_token", tokenStore.Token);
         
         return default;
     }
@@ -75,7 +75,7 @@ public class VkApiInvoke(
     {
         var json = await InvokeInternalAsync(methodName, parameters, skipAuthorization, token);
 
-        return json.ToObject<T>(_defaultSerializer);
+        return json.ToObject<T>(DefaultSerializer);
     }
 
     public string Invoke(string methodName, IDictionary<string, string> parameters, bool skipAuthorization = false)
@@ -93,23 +93,24 @@ public class VkApiInvoke(
     {
         await TryAddRequiredParametersAsync(parameters, skipAuthorization);
         
-        return await handler.Perform(async (sid, key) =>
+        return await handler.Perform(async captchaResponse =>
         {
-            if (sid is { } captchaSid)
-            {
-                parameters.Add("captcha_sid", captchaSid.ToString());
-                parameters.Add("captcha_key", key);
-            }
+            var requestParameters = new Dictionary<string, string>(parameters);
+            captchaResponse?.AddTo(requestParameters);
 
             await rateLimiter.WaitNextAsync(token);
 
-            var content = new FormUrlEncodedContent(parameters);
+            var content = new FormUrlEncodedContent(requestParameters);
 
             using var response = await client.SendAsync(new()
             {
                 Method = HttpMethod.Post,
                 RequestUri = new(methodName, UriKind.Relative),
                 Content = content,
+                Headers =
+                {
+                    Authorization = skipAuthorization ? null : new(AuthorizationScheme, tokenStore.Token)
+                }
             }, HttpCompletionOption.ResponseHeadersRead, token);
             
             LastInvokeTime = DateTimeOffset.Now;
@@ -126,12 +127,12 @@ public class VkApiInvoke(
             
             var vkError = error.ToObject<VkError>();
 
-            if (vkError?.ErrorCode is not (5 or 1117 or 1114) || // token has expired
+            if (skipAuthorization ||
+                vkError?.ErrorCode is not (4 or 5 or 1117 or 1114) || // token has expired
                 tokenRefreshHandler == null ||
-                await tokenRefreshHandler.RefreshTokenAsync(tokenStore.Token) is not { } newToken)
+                await tokenRefreshHandler.RefreshTokenAsync(tokenStore.Token) is null)
                 throw new VkApiException(vkError);
-                
-            parameters["access_token"] = newToken;
+            
             return await InvokeInternalAsync(methodName, parameters, skipAuthorization);
         });
     }

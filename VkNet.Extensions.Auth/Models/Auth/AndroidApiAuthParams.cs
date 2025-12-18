@@ -90,11 +90,11 @@ public record AndroidApiAuthParams(string? Login, string? Sid, CodeRequestedDele
                           (!string.IsNullOrEmpty(Login) && !string.IsNullOrEmpty(Sid) &&
                            CodeRequestedAsync is not null && SupportedWays?.Any() is true);
 
-    public IEnumerable<LoginWay> SupportedWays { get; init; } = SupportedWays ?? new[]
-    {
+    public IEnumerable<LoginWay> SupportedWays { get; init; } = SupportedWays ??
+    [
         LoginWay.Password, LoginWay.Push, LoginWay.Sms, LoginWay.CallReset, LoginWay.ReserveCode,
         LoginWay.Codegen, LoginWay.Email, LoginWay.Passkey
-    };
+    ];
 }
 
 [JsonConverter(typeof(SafetyEnumJsonConverter))]
