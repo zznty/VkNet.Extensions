@@ -5,7 +5,13 @@ using VkNet.Utils.JsonConverter;
 
 namespace VkNet.Extensions.Auth.Models.Auth;
 
-public record AuthValidateAccountResponse(bool IsEmail, bool IsPhone, AuthFlow FlowName, ReadOnlyCollection<AuthType> FlowNames, string Sid, NextVerificationStep? NextStep);
+public record AuthValidateAccountResponse(
+    bool IsEmail,
+    bool IsPhone,
+    AuthFlow FlowName,
+    ReadOnlyCollection<AuthType> FlowNames,
+    string Sid,
+    NextVerificationStep? NextStep);
 
 public record NextVerificationStep(LoginWay VerificationMethod, bool HasAnotherVerificationMethods, string? ExternalId);
 

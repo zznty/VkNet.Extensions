@@ -2,5 +2,5 @@
 
 public interface IPlatformPasskeyApi
 {
-    Task<string> RequestPasskeyAsync(string passkeyData);
+    Task<string> RequestPasskeyAsync(string passkeyData, string origin);
 }

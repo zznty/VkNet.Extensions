@@ -17,6 +17,7 @@ public class VkAndroidAuthorizationFlow(
     IEcosystemCategory ecosystemCategory,
     IPlatformPasskeyApi? platformPasskeyApi = null) : IAuthorizationFlow
 {
+    private const string PasskeyOrigin = "https://id.vk.ru";
     private AndroidApiAuthParams? _apiAuthParams;
 
     public async Task<AuthorizationResult> AuthorizeAsync(CancellationToken token = default)
@@ -157,7 +158,7 @@ public class VkAndroidAuthorizationFlow(
         
         var (_, passkeyData) = await authCategory.BeginPasskeyAsync(sid);
 
-        var passkeyResponse = await platformPasskeyApi.RequestPasskeyAsync(passkeyData);
+        var passkeyResponse = await platformPasskeyApi.RequestPasskeyAsync(passkeyData, PasskeyOrigin);
 
         var flow = serviceProvider.GetRequiredKeyedService<IAuthorizationFlow>(AndroidGrantType.Passkey);
 

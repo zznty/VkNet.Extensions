@@ -30,13 +30,13 @@ public class WindowsPasskeyApi : IPlatformPasskeyApi
         }
     }
     
-    public Task<string> RequestPasskeyAsync(string passkeyData)
+    public Task<string> RequestPasskeyAsync(string passkeyData, string origin)
     {
         return Task.Run(() =>
         {
             CancelCurrentOperationIfAny();
 
-            BeginPasskey(passkeyData, out var authenticatorData, out var signature, out var userHandle,
+            BeginPasskey(passkeyData, origin, out var authenticatorData, out var signature, out var userHandle,
                 out var clientDataJson, out var usedCredential);
         
             var json = new JsonObject
@@ -68,74 +68,56 @@ public class WindowsPasskeyApi : IPlatformPasskeyApi
             throw new WebAuthNException(hResult);
     }
     
-    private unsafe void BeginPasskey(string passkeyData, out byte[] authenticatorData, out byte[] signature,
+    private unsafe void BeginPasskey(string passkeyData, string origin, out byte[] authenticatorData, out byte[] signature,
         out byte[] userHandle, out string clientDataJson, out byte[] usedCredential)
     {
-        var data = JsonSerializer.Deserialize<PasskeyDataResponse>(passkeyData, _jsonSerializerOptions);
-
-        var dwVersion = PInvoke.WebAuthNGetApiVersionNumber();
-
-        var publicKeyPtr = Marshal.StringToHGlobalUni(PInvoke.WebauthnCredentialTypePublicKey);
-
-        var credList = data!.AllowCredentials
-            .Where(b => b.Type == PInvoke.WebauthnCredentialTypePublicKey)
-            .Select(b =>
-            {
-                var id = b.Id.Base64UrlDecode();
-                var ptr = Marshal.AllocHGlobal(id.Length);
-                Marshal.Copy(id, 0, ptr, id.Length);
-            
-                return new WEBAUTHN_CREDENTIAL
-                {
-                    dwVersion = dwVersion,
-                    pwszCredentialType = (char*)publicKeyPtr,
-                    pbId = (byte*)ptr,
-                    cbId = (uint)id.Length
-                };
-        }).ToArray();
-
-        clientDataJson =
-            JsonSerializer.Serialize(new PInvoke.SecurityKeyClientData(PInvoke.SecurityKeyClientData.GetAssertion,
-                data.Challenge, "https://id.vk.ru"));
-        
-        var clientDataJsonPtr = Utf8StringMarshaller.ConvertToUnmanaged(clientDataJson);
-        var sha256Ptr = Marshal.StringToHGlobalUni("SHA-256");
+        var data = JsonSerializer.Deserialize<PasskeyDataResponse>(passkeyData, _jsonSerializerOptions)!;
 
         HRESULT hResult;
         WEBAUTHN_ASSERTION* assertion;
-        try
+        fixed (char* publicKeyPtr = &PInvoke.WebauthnCredentialTypePublicKey.GetPinnableReference())
         {
-            fixed (WEBAUTHN_CREDENTIAL* credListPtr = &credList[0])
-                hResult = PInvoke.WebAuthNAuthenticatorGetAssertion(new(Process.GetCurrentProcess().MainWindowHandle), data.RpId, new()
-                {
-                    pbClientDataJSON = clientDataJsonPtr,
-                    cbClientDataJSON = (uint)Encoding.UTF8.GetByteCount(clientDataJson),
-                    dwVersion = 2,
-                    pwszHashAlgId = (char*)sha256Ptr,
-                }, new WEBAUTHN_AUTHENTICATOR_GET_ASSERTION_OPTIONS
-                {
-                    dwVersion = 4,
-                    dwTimeoutMilliseconds = (uint)data.Timeout,
-                    CredentialList = new()
-                    {
-                        cCredentials = (uint)credList.Length,
-                        pCredentials = credListPtr
-                    },
-                    dwUserVerificationRequirement = data.UserVerification == "required" ? 1u : 0,
-                    dwAuthenticatorAttachment = PInvoke.WebauthnAuthenticatorAttachmentCrossPlatformU2FV2
-                }, out assertion);
-        }
-        finally
-        {
-            Utf8StringMarshaller.Free(clientDataJsonPtr);
-            
-            foreach (var credential in credList)
+            clientDataJson =
+                JsonSerializer.Serialize(new PInvoke.SecurityKeyClientData(PInvoke.SecurityKeyClientData.GetAssertion,
+                    data.Challenge, origin));
+
+            var clientDataJsonPtr = Utf8StringMarshaller.ConvertToUnmanaged(clientDataJson);
+            ReadOnlySpan<WEBAUTHN_CREDENTIAL> credList = [];
+            try
             {
-                Marshal.FreeHGlobal((IntPtr)credential.pbId);
+                credList = CreateWebauthnCredentials(data, publicKeyPtr);
+
+                fixed (char* sha256Ptr = &"SHA-256".GetPinnableReference())
+                fixed (WEBAUTHN_CREDENTIAL* credListPtr = &credList.GetPinnableReference())
+                    hResult = PInvoke.WebAuthNAuthenticatorGetAssertion(
+                        new(Process.GetCurrentProcess().MainWindowHandle), data.RpId, new()
+                        {
+                            pbClientDataJSON = clientDataJsonPtr,
+                            cbClientDataJSON = (uint)Encoding.UTF8.GetByteCount(clientDataJson),
+                            dwVersion = 2,
+                            pwszHashAlgId = sha256Ptr,
+                        }, new WEBAUTHN_AUTHENTICATOR_GET_ASSERTION_OPTIONS
+                        {
+                            dwVersion = 4,
+                            dwTimeoutMilliseconds = (uint)data.Timeout,
+                            CredentialList = new()
+                            {
+                                cCredentials = (uint)credList.Length,
+                                pCredentials = credListPtr
+                            },
+                            dwUserVerificationRequirement = data.UserVerification == "required" ? 1u : 0,
+                            dwAuthenticatorAttachment = PInvoke.WebauthnAuthenticatorAttachmentCrossPlatformU2FV2
+                        }, out assertion);
             }
-            
-            Marshal.FreeHGlobal(sha256Ptr);
-            Marshal.FreeHGlobal(publicKeyPtr);
+            finally
+            {
+                Utf8StringMarshaller.Free(clientDataJsonPtr);
+
+                foreach (var credential in credList)
+                {
+                    Marshal.FreeHGlobal((nint)credential.pbId);
+                }
+            }
         }
 
         if (hResult.Failed)
@@ -151,6 +133,29 @@ public class WindowsPasskeyApi : IPlatformPasskeyApi
             .ToArray();
         
         PInvoke.WebAuthNFreeAssertion(assertion);
+    }
+
+    private static unsafe ReadOnlySpan<WEBAUTHN_CREDENTIAL> CreateWebauthnCredentials(PasskeyDataResponse data, char* publicKeyPtr)
+    {
+        var dwVersion = PInvoke.WebAuthNGetApiVersionNumber();
+        var credentials = new List<WEBAUTHN_CREDENTIAL>();
+        foreach (var credential in data.AllowCredentials
+                     .Where(b => b.Type == PInvoke.WebauthnCredentialTypePublicKey))
+        {
+            var id = credential.Id.Base64UrlDecode();
+            var ptr = Marshal.AllocHGlobal(id.Length);
+            Marshal.Copy(id, 0, ptr, id.Length);
+
+            credentials.Add(new WEBAUTHN_CREDENTIAL
+            {
+                dwVersion = dwVersion,
+                pwszCredentialType = publicKeyPtr,
+                pbId = (byte*)ptr,
+                cbId = (uint)id.Length
+            });
+        }
+        
+        return CollectionsMarshal.AsSpan(credentials);
     }
 }
 
