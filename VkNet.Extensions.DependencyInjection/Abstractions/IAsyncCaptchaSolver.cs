@@ -15,7 +15,7 @@ public interface IAsyncCaptchaSolver
 
 /// <summary>
 /// Абстрактный объект запроса капчи.
-/// Может быть запросом решения кода с изображения <see cref="ImageCaptchaRequest"/> или новой браузерной версии <see cref="BrowserCaptchaRequest"/>>
+/// Может быть запросом решения кода с изображения <see cref="ImageCaptchaRequest"/> или новой браузерной версии <see cref="BrowserCaptchaRequest"/>
 /// </summary>
 public abstract record CaptchaRequest;
 

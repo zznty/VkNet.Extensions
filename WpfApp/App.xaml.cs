@@ -28,6 +28,7 @@ public partial class App
             services.AddSingleton<IVkTokenStore, RegistryTokenStore>();
             services.AddSingleton<IDeviceIdProvider, WindowsDeviceIdProvider>();
             services.AddSingleton<IExchangeTokenStore, RegistryExchangeTokenStore>();
+            services.AddSingleton<IAsyncCaptchaSolver, WpfAppCaptchaSolver>();
             
             // Vk Net services
             services.AddVkNetWithAuth();
@@ -51,11 +52,13 @@ public partial class App
             services.AddTransient<PasskeyPage>();
             services.AddTransient<OtpCodePage>();
             services.AddTransient<UserInfoPage>();
+            services.AddTransient<BrowserCaptchaPage>();
             
             // View models
             services.AddScoped<LoginViewModel>();
             services.AddScoped<PasswordViewModel>();
             services.AddScoped<OtpCodeViewModel>();
+            services.AddSingleton<BrowserCaptchaViewModel>();
             services.AddTransient<UserInfoViewModel>();
 
             services.AddHostedService<ApplicationHostService>();

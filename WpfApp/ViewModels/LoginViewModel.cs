@@ -41,7 +41,7 @@ public class LoginViewModel : ViewModelBase
     {
         if (requestedLoginWay == LoginWay.Passkey)
         {
-            _navigationService.Navigate(typeof(PasskeyPage));
+            _navigationService.NavigateWithHierarchy(typeof(PasskeyPage));
             return default;
         }
 
@@ -52,7 +52,7 @@ public class LoginViewModel : ViewModelBase
             if (state is ProfileAuthState profileAuthState)
                 passwordViewModel.Profile = profileAuthState.Profile;
             
-            _navigationService.Navigate(typeof(PasswordPage));
+            _navigationService.NavigateWithHierarchy(typeof(PasswordPage));
 
             return new(passwordViewModel.PasswordSubmitted.Task);
         }
@@ -69,7 +69,7 @@ public class LoginViewModel : ViewModelBase
             otpCodeViewModel.Info = verificationAuthState.Info;
         }
         
-        _navigationService.Navigate(typeof(OtpCodePage));
+        _navigationService.NavigateWithHierarchy(typeof(OtpCodePage));
         
         return new(otpCodeViewModel.Submitted.Task);
     }

@@ -11,7 +11,7 @@
       Foreground="{DynamicResource TextFillColorPrimaryBrush}"
       d:DataContext="{d:DesignInstance local:UserInfoPage,
                                      IsDesignTimeCreatable=False}"
-      Title="User Info" Height="450" Width="800">
+      Title="User Info">
     <Page.Style>
         <Style TargetType="Page" BasedOn="{StaticResource {x:Type Page}}">
             <Setter Property="Template">

@@ -11,7 +11,7 @@
       d:DataContext="{d:DesignInstance local:PasskeyPage,
                                      IsDesignTimeCreatable=False}"
       mc:Ignorable="d"
-      Title="PasskeyPage" Height="450" Width="800">
+      Title="PasskeyPage">
     <ui:Card HorizontalAlignment="Center" Width="300">
         <ui:SymbolIcon Symbol="Fingerprint48" FontSize="128" Width="300"
                        HorizontalAlignment="Center">
