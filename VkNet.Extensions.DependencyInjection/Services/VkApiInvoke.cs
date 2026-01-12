@@ -125,16 +125,21 @@ public class VkApiInvoke(
 
             if (obj["error"] is not { } error) return obj["response"]!;
             
-            var vkError = error.ToObject<VkError>();
+            var vkError = error.ToObject<VkError>(DefaultSerializer);
 
             if (skipAuthorization ||
                 vkError?.ErrorCode is not (4 or 5 or 1117 or 1114) || // token has expired
                 tokenRefreshHandler == null ||
                 await tokenRefreshHandler.RefreshTokenAsync(tokenStore.Token) is null)
-                throw new VkApiException(vkError);
+                ThrowVkError(error, vkError ?? new());
             
             return await InvokeInternalAsync(methodName, parameters, skipAuthorization);
         });
+    }
+
+    protected virtual void ThrowVkError(JToken error, VkError vkError)
+    {
+        throw VkErrorFactory.Create(vkError);
     }
 
     public DateTimeOffset? LastInvokeTime { get; private set;}

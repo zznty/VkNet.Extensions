@@ -29,14 +29,26 @@ public class WindowsPasskeyApi : IPlatformPasskeyApi
         }
     }
     
-    public Task<string> RequestPasskeyAsync(PasskeyDataResponse passkeyData, string origin)
+    public Task<string?> RequestPasskeyAsync(PasskeyDataResponse passkeyData, string origin)
     {
         return Task.Run(() =>
         {
             CancelCurrentOperationIfAny();
 
-            BeginPasskey(passkeyData, origin, out var authenticatorData, out var signature, out var userHandle,
-                out var clientDataJson, out var usedCredential);
+            byte[]? authenticatorData;
+            byte[]? signature;
+            byte[]? userHandle;
+            string? clientDataJson;
+            byte[]? usedCredential;
+            try
+            {
+                BeginPasskey(passkeyData, origin, out authenticatorData, out signature, out userHandle,
+                    out clientDataJson, out usedCredential);
+            }
+            catch (WebAuthNException)
+            {
+                return null;
+            }
         
             var json = new JsonObject
             {

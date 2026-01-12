@@ -12,7 +12,7 @@ public partial class MainWindow : IWindow
         
         snackbarService.SetSnackbarPresenter(SnackbarPresenter);
         navigationService.SetNavigationControl(NavigationView);
-        contentDialogService.SetContentPresenter(RootContentDialog);
+        contentDialogService.SetDialogHost(RootContentDialog);
         
         NavigationView.SetServiceProvider(serviceProvider);
     }

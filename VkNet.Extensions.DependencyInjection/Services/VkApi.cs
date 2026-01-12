@@ -19,7 +19,6 @@ internal sealed class VkApi(
     ILanguageService languageService,
     IVkApiCategories categories,
     IAuthorizationFlow authorizationFlow,
-    INeedValidationHandler needValidationHandler,
     IVkApiVersionManager vkApiVersion,
     IVkTokenStore tokenStore,
     ICaptchaHandler captchaHandler,
@@ -176,7 +175,7 @@ internal sealed class VkApi(
         languageService.GetLanguage();
 
     public void Validate(string validateUrl) =>
-        needValidationHandler.ValidateAsync(validateUrl).GetAwaiter().GetResult();
+        throw new NotImplementedException();
 
     public int RequestsPerSecond { get; set; }
 
@@ -188,7 +187,7 @@ internal sealed class VkApi(
 
     public INeedValidationHandler NeedValidationHandler
     {
-        get => needValidationHandler;
+        get => throw new NotImplementedException();
         set => throw new NotSupportedException("Container is immutable");
     }
 

@@ -5,12 +5,11 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         
-        <Version>1.0.3</Version>
+        <Version>1.1.1</Version>
         <Description>Расширение android авторизаци для VkNet.</Description>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="protobuf-net" Version="3.2.56" />
         <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.264">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

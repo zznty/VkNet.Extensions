@@ -14,5 +14,5 @@ public interface IPlatformPasskeyApi
     /// <param name="passkeyData">Параметры запроса подписи</param>
     /// <param name="origin">Идентификатор запрашиваемой подписи</param>
     /// <returns>JSON строка утверждения аутентификатора о согласии пользователя на конкретную транзакцию</returns>
-    Task<string> RequestPasskeyAsync(PasskeyDataResponse passkeyData, string origin);
+    Task<string?> RequestPasskeyAsync(PasskeyDataResponse passkeyData, string origin);
 }

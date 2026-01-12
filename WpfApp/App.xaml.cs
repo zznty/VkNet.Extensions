@@ -6,6 +6,7 @@ using VkNet.Extensions.Auth.Abstractions;
 using VkNet.Extensions.Auth.Extensions;
 using VkNet.Extensions.DependencyInjection.Abstractions;
 using Wpf.Ui;
+using Wpf.Ui.Abstractions;
 using WpfApp.Abstractions;
 using WpfApp.Services;
 using WpfApp.Services.Stores;
@@ -23,18 +24,19 @@ public partial class App
         })
         .ConfigureServices(services =>
         {
-            // Vk Net services
-            services.AddVkNetWithAuth();
-            
             // Vk Net implementations
             services.AddSingleton<IVkTokenStore, RegistryTokenStore>();
             services.AddSingleton<IDeviceIdProvider, WindowsDeviceIdProvider>();
             services.AddSingleton<IExchangeTokenStore, RegistryExchangeTokenStore>();
+            
+            // Vk Net services
+            services.AddVkNetWithAuth();
 
             // Wpf Ui services
             services.AddSingleton<ISnackbarService, SnackbarService>();
             services.AddSingleton<INavigationService, NavigationService>();
             services.AddSingleton<IContentDialogService, ContentDialogService>();
+            services.AddSingleton<INavigationViewPageProvider, NavigationViewPageProvider>();
             
             // Wpf app services
             services.AddSingleton<TokenChecker>();

@@ -5,7 +5,7 @@ namespace VkNet.Extensions.Auth.Utils;
 public record VkAuthRegisterOptions(string UserAgent, bool UseHttp3, ImmutableDictionary<string, string> AdditionalHeaders)
 {
     public static VkAuthRegisterOptions DefaultAndroid { get; } =
-        new("VKAndroidApp/8.50-17564 (Android 12; SDK 32; arm64-v8a; Pixel 4a; ru; 2960x1440)", true,
+        new("VKAndroidApp/8.157-45261 (Android 14; SDK 34; arm64-v8a; Pixel 8; ru; 2220x1080)", true,
             [new("X-VK-Android-Client", "new")]);
 
     public virtual void ConfigureClient(HttpClient client)

@@ -12,7 +12,6 @@ internal sealed class VkApiCategories(
     IDatabaseCategory database,
     IUtilsCategory utils,
     IWallCategory wall,
-    IBoardCategory board,
     IFaveCategory fave,
     IVideoCategory video,
     IAccountCategory account,
@@ -56,7 +55,7 @@ internal sealed class VkApiCategories(
     public IDatabaseCategory Database { get; } = database;
     public IUtilsCategory Utils { get; } = utils;
     public IWallCategory Wall { get; } = wall;
-    public IBoardCategory Board { get; } = board;
+    public IBoardCategory Board { get; } = null!; // maybe later
     public IFaveCategory Fave { get; } = fave;
     public IVideoCategory Video { get; } = video;
     public IAccountCategory Account { get; } = account;
