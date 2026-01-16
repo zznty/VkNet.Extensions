@@ -41,7 +41,7 @@ public static class AudioBypassServiceCollection
 		collection.AddVkNet();
 
 		collection.RemoveAll<IVkApiInvoke>();
-		
+
 		collection.AddHttpClient<IVkApiInvoke, VkApiInvoke>((options ?? VkAuthRegisterOptions.DefaultAndroid).ConfigureClient)
 			.AddTypedClient<PasswordAuthorizationFlow>()
 			.AddTypedClient<WithoutPasswordAuthorizationFlow>()

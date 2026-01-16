@@ -10,20 +10,38 @@ public class WpfAppCaptchaSolver(INavigationService navigationService, IServiceP
 {
     public async ValueTask<string?> SolveAsync(CaptchaRequest request)
     {
-        if (request is not BrowserCaptchaRequest { RedirectUri: var uri })
-            return null;
-        
-        var viewModel = provider.GetRequiredService<BrowserCaptchaViewModel>();
+        if (request is BrowserCaptchaRequest { RedirectUri: var uri })
+        {
+            var viewModel = provider.GetRequiredService<BrowserCaptchaViewModel>();
 
-        viewModel.CaptchaUri = uri;
-        
-        navigationService.NavigateWithHierarchy(typeof(BrowserCaptchaPage));
+            viewModel.CaptchaUri = uri;
 
-        var result = await viewModel.SolveAsync();
+            navigationService.NavigateWithHierarchy(typeof(BrowserCaptchaPage));
 
-        navigationService.GoBack();
-        
-        return result;
+            var result = await viewModel.SolveAsync();
+
+            navigationService.GoBack();
+
+            return result;
+        }
+
+        if (request is ImageCaptchaRequest { ImageUri: var imgUri })
+        {
+            // Для image captcha используем специальный диалог
+            var viewModel = provider.GetRequiredService<ImageCaptchaViewModel>();
+
+            viewModel.CaptchaUri = imgUri;
+
+            navigationService.NavigateWithHierarchy(typeof(ImageCaptchaPage));
+
+            var result = await viewModel.SolveAsync();
+
+            navigationService.GoBack();
+
+            return result;
+        }
+
+        return null;
     }
 
     public ValueTask SolveFailedAsync()
