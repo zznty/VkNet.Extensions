@@ -53,22 +53,22 @@ public class ApplicationHostService(IServiceProvider serviceProvider, TokenCheck
 
     private async void OnMainWindowLoaded(object sender, RoutedEventArgs e)
     {
-        if (await tokenChecker.IsTokenValid())
+        if (tokenChecker.IsTokenValid())
         {
             navigationService.Navigate(typeof(UserInfoPage));
             return;
         }
 
         using var scope = serviceScopeFactory.CreateScope();
-        
+
         navigationService.GetNavigationControl().SetServiceProvider(scope.ServiceProvider);
-        
+
         if (!navigationService.Navigate(typeof(LoginPage)))
             return;
-        
+
         var loginViewModel = scope.ServiceProvider.GetRequiredService<LoginViewModel>();
         var loginResult = await loginViewModel.LoggedIn.Task;
-        
+
         navigationService.GetNavigationControl().SetServiceProvider(serviceProvider);
         if (loginResult)
             navigationService.Navigate(typeof(UserInfoPage));

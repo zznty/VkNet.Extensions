@@ -1,21 +1,30 @@
-﻿using VkNet.Abstractions;
-using VkNet.Exception;
+﻿using Microsoft.Win32;
 
 namespace WpfApp.Services;
 
-public class TokenChecker(IUsersCategory usersCategory)
+public class TokenChecker
 {
-    public async Task<bool> IsTokenValid()
+    public bool IsTokenValid()
     {
-        try
+        var token = Registry.CurrentUser.OpenSubKey("Software\\VkNet.Extensions.Auth")?.GetValue("Token")?.ToString();
+        if (string.IsNullOrEmpty(token))
+            return false;
+
+        // Проверяем срок действия токена
+        var expirationValue = Registry.CurrentUser.OpenSubKey("Software\\VkNet.Extensions.Auth")?.GetValue("TokenExpiration")?.ToString();
+        if (!string.IsNullOrEmpty(expirationValue) && DateTimeOffset.TryParse(expirationValue, out var expiration))
         {
-            await usersCategory.GetAsync(Enumerable.Empty<long>());
+            // Токен истёк
+            if (expiration <= DateTimeOffset.Now)
+                return false;
         }
-        catch (Exception e) when (e is VkApiException or InvalidOperationException)
+        else
         {
+            // Если даты истечения нет - считаем токен невалидным для безопасности
             return false;
         }
 
+        // Токен считается валидным только если есть и дата истечения
         return true;
     }
 }

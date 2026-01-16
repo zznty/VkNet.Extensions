@@ -53,12 +53,14 @@ public partial class App
             services.AddTransient<OtpCodePage>();
             services.AddTransient<UserInfoPage>();
             services.AddTransient<BrowserCaptchaPage>();
+            services.AddTransient<ImageCaptchaPage>();
             
             // View models
             services.AddScoped<LoginViewModel>();
             services.AddScoped<PasswordViewModel>();
             services.AddScoped<OtpCodeViewModel>();
             services.AddSingleton<BrowserCaptchaViewModel>();
+            services.AddSingleton<ImageCaptchaViewModel>();
             services.AddTransient<UserInfoViewModel>();
 
             services.AddHostedService<ApplicationHostService>();

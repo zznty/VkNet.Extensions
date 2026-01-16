@@ -160,7 +160,7 @@ internal abstract class AuthorizationFlowBase(
     {
         return new()
         {
-            { "libverify_support", false }, // TODO: test lib verify cringe
+            { "libverify_support", true },
             { "sid", authParams.Sid },
             { "scope", "all" },
             { "supported_ways", authParams.SupportedWays },

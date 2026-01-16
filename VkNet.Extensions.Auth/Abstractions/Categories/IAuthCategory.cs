@@ -9,12 +9,19 @@ public interface IAuthCategory
     Task<AuthValidatePhoneResponse> ValidatePhoneAsync(string phone, string sid, bool allowCallReset = true, IEnumerable<LoginWay>? loginWays = null, CancellationToken token = default);
 
     Task<AuthCodeResponse> GetAuthCodeAsync(string deviceName, bool forceRegenerate = true, CancellationToken token = default);
-    
+
     Task<AuthCheckResponse> CheckAuthCodeAsync(string authHash, CancellationToken token = default);
-    
+
     Task<TokenInfo?> RefreshTokensAsync(string oldToken, string exchangeToken, CancellationToken token = default);
 
     Task<ExchangeTokenResponse> GetExchangeToken(UsersFields? fields = null, CancellationToken token = default);
-    
+
     Task<PasskeyBeginResponse> BeginPasskeyAsync(string sid, CancellationToken token = default);
+
+    /// <summary>
+    /// Авторизация с паролём через API метод auth.validateAccount.
+    /// Возвращает AuthWithPasswordResult с токеном если авторизация успешна.
+    /// </summary>
+    Task<AuthWithPasswordResult> ValidateAccountWithPasswordAsync(string login, string password, string sid,
+        string? captchaSid = null, string? captchaKey = null, string? successToken = null, CancellationToken token = default);
 }

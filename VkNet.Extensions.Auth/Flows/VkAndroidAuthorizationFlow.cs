@@ -26,14 +26,15 @@ public class VkAndroidAuthorizationFlow(
     {
         if (_apiAuthParams is null)
             throw new InvalidOperationException($"Authorization parameters are not set. Call {nameof(SetAuthorizationParams)} first.");
-        
+
         if (_apiAuthParams.IsAnonymous)
         {
-            var defaultFlow = serviceProvider.GetRequiredKeyedService<IAuthorizationFlow>(AndroidGrantType.Password);
-            
-            defaultFlow.SetAuthorizationParams(_apiAuthParams);
-            
-            return await defaultFlow.AuthorizeAsync(token);
+            // Для анонимной авторизации используем WithoutPasswordAuthorizationFlow
+            var withoutPasswordFlow = serviceProvider.GetRequiredKeyedService<IAuthorizationFlow>(AndroidGrantType.WithoutPassword);
+
+            withoutPasswordFlow.SetAuthorizationParams(_apiAuthParams);
+
+            return await withoutPasswordFlow.AuthorizeAsync(token);
         }
         
         EnsureAnonymousToken();
@@ -59,10 +60,13 @@ public class VkAndroidAuthorizationFlow(
                     ? AndroidGrantType.Password
                     : AndroidGrantType.PhoneConfirmationSid);
 
+                System.Diagnostics.Debug.WriteLine($"[VkAndroidAuthorizationFlow] passwordProfile?.Phone: {(passwordProfile?.Phone ?? "NULL")}");
+
                 passwordFlow.SetAuthorizationParams(_apiAuthParams! with
                 {
                     Sid = sid,
                     Code = responseCode,
+                    Phone = passwordProfile?.Phone,  // Передаём телефон из профиля после OTP валидации
                     Password = await _apiAuthParams.CodeRequestedAsync!(LoginWay.Password,
                         passwordProfile is null ? new AuthState(sid) : new ProfileAuthState(sid, passwordProfile)),
                     SupportedWays = [LoginWay.Push, LoginWay.Email]
@@ -128,6 +132,8 @@ public class VkAndroidAuthorizationFlow(
 
             var response = await ecosystemCategory.CheckOtpAsync(sid, nextStep, responseCode, token);
             sid = response.Sid;
+
+            System.Diagnostics.Debug.WriteLine($"[VkAndroidAuthorizationFlow] CheckOtp response - Sid: {sid}, Profile.Phone: {(response.Profile?.Phone ?? "NULL")}, CanSkipPassword: {response.CanSkipPassword}");
 
             if (!response.ProfileExist)
                 throw new VkAuthException(new()

@@ -90,12 +90,13 @@ internal sealed class AsyncCaptchaHandler : ICaptchaHandler
         CaptchaRequiredException exception,
         CaptchaSolveContext context)
     {
+        System.Diagnostics.Debug.WriteLine($"[CaptchaHandler] Solving captcha. Attempts left: {context.RemainingSolveAttempts}, Sid: {exception.Error.CaptchaSid}");
         _logger?.LogWarning("Повторная обработка капчи");
         if (context.RemainingSolveAttempts < MaxCaptchaRecognitionCount && _captchaSolver is not null)
             await _captchaSolver.SolveFailedAsync();
         if (context.RemainingSolveAttempts <= 0)
             return false;
-        
+
         var task = exception.Error.RedirectUri is null
             ? _captchaSolver?.SolveAsync(new ImageCaptchaRequest(exception.Error.CaptchaImg))
             : _captchaSolver?.SolveAsync(new BrowserCaptchaRequest(exception.Error.RedirectUri));
@@ -104,9 +105,13 @@ internal sealed class AsyncCaptchaHandler : ICaptchaHandler
             context.Response = exception.Error.RedirectUri is null
                 ? new ImageCaptchaResponse(exception.Error.CaptchaSid, response)
                 : new BrowserCaptchaResponse(exception.Error.CaptchaSid, response);
+            System.Diagnostics.Debug.WriteLine($"[CaptchaHandler] Captcha solved! Response: {response?.Substring(0, Math.Min(50, response?.Length ?? 0))}...");
         }
         else
+        {
             context.Response = null;
+            System.Diagnostics.Debug.WriteLine($"[CaptchaHandler] Captcha solver returned null!");
+        }
         context.RemainingSolveAttempts--;
         return context.Response is not null;
     }

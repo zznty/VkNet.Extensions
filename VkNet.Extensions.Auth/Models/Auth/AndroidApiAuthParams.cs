@@ -13,7 +13,8 @@ public delegate ValueTask<LoginWay> VerificationMethodRequestedDelegate(IReadOnl
 
 /// <inheritdoc />
 public record AndroidApiAuthParams(string? Login, string? Sid, CodeRequestedDelegate? CodeRequestedAsync, IEnumerable<LoginWay>? SupportedWays = null,
-    string? Password = null, string? PasskeyData = null, VerificationMethodRequestedDelegate? VerificationMethodRequestedAsync = null, CancellationToken CancellationToken = default) : IApiAuthParams
+    string? Password = null, string? PasskeyData = null, VerificationMethodRequestedDelegate? VerificationMethodRequestedAsync = null,
+    string? Phone = null, CancellationToken CancellationToken = default) : IApiAuthParams
 {
     public AndroidApiAuthParams() : this(null, null, null)
     {
@@ -57,8 +58,11 @@ public record AndroidApiAuthParams(string? Login, string? Sid, CodeRequestedDele
     [Obsolete("Not implemented", true)]
     public string? ProxyPassword { get; set; }
 
-    [Obsolete($"Use {nameof(Login)} instead", true)]
-    public string? Phone { get; set; } = Login;
+    /// <summary>
+    /// Номер телефона из профиля после OTP валидации.
+    /// Используется для передачи в auth.validateAccount с правильным форматом телефона.
+    /// </summary>
+    public string? Phone { get; set; } = Phone;
 
     /// <inheritdoc />
     public string ClientSecret { get; set; } = "hHbZxrka2uZ6jB1inYsH";
